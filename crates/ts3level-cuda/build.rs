@@ -47,9 +47,7 @@ fn main() {
     let fatbin = out_dir.join("sha1_hasher.fatbin");
 
     let mut cmd = Command::new(&nvcc);
-    cmd.arg("--fatbin")
-        .arg("-O3")
-        .arg("--use_fast_math");
+    cmd.arg("--fatbin").arg("-O3").arg("--use_fast_math");
     for (arch, code) in TARGETS {
         cmd.arg("-gencode").arg(format!("arch={arch},code={code}"));
     }

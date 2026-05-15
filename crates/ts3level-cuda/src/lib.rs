@@ -10,7 +10,9 @@
 //! actual hashing context is created lazily in [`HashEngine::select_device`].
 
 use cudarc::driver::sys;
-use cudarc::driver::{CudaContext, CudaFunction, CudaModule, CudaStream, LaunchConfig, PushKernelArg};
+use cudarc::driver::{
+    CudaContext, CudaFunction, CudaModule, CudaStream, LaunchConfig, PushKernelArg,
+};
 use cudarc::nvrtc::Ptx;
 use std::io::Write;
 use std::sync::Arc;
@@ -52,7 +54,10 @@ struct BoundState {
 
 impl CudaEngine {
     pub fn new() -> Self {
-        Self { bound: None, fatbin_temp: None }
+        Self {
+            bound: None,
+            fatbin_temp: None,
+        }
     }
 }
 
@@ -101,8 +106,12 @@ impl HashEngine for CudaEngine {
             .map_err(|e| EngineError::Other(format!("flush fatbin: {e}")))?;
         let path = tmp.into_temp_path();
 
-        let module = ctx.load_module(Ptx::from_file(&path)).map_err(map_driver_err)?;
-        let func = module.load_function("sha1_hasher").map_err(map_driver_err)?;
+        let module = ctx
+            .load_module(Ptx::from_file(&path))
+            .map_err(map_driver_err)?;
+        let func = module
+            .load_function("sha1_hasher")
+            .map_err(map_driver_err)?;
 
         let mp_count = ctx
             .attribute(sys::CUdevice_attribute::CU_DEVICE_ATTRIBUTE_MULTIPROCESSOR_COUNT)
@@ -110,15 +119,22 @@ impl HashEngine for CudaEngine {
 
         debug!("Bound to CUDA device {index}, MP count {mp_count}");
 
-        self.bound = Some(BoundState { ctx, stream, module, func, mp_count });
+        self.bound = Some(BoundState {
+            ctx,
+            stream,
+            module,
+            func,
+            mp_count,
+        });
         self.fatbin_temp = Some(path);
         Ok(())
     }
 
     fn launch(&mut self, params: &LaunchParams) -> Result<LaunchResult, EngineError> {
-        let state = self.bound.as_mut().ok_or_else(|| {
-            EngineError::Other("no device selected before launch".into())
-        })?;
+        let state = self
+            .bound
+            .as_mut()
+            .ok_or_else(|| EngineError::Other("no device selected before launch".into()))?;
 
         if params.pubkey_b64.len() > 110 {
             return Err(EngineError::Other(format!(
@@ -136,10 +152,7 @@ impl HashEngine for CudaEngine {
 
         let total_blocks = state.mp_count * BLOCKS_PER_SM;
         let total_threads = total_blocks * THREADS_PER_BLOCK;
-        let n_per_thread = params
-            .n_counters
-            .div_ceil(total_threads as u64)
-            .max(1);
+        let n_per_thread = params.n_counters.div_ceil(total_threads as u64).max(1);
         let actual_hashes = total_threads as u64 * n_per_thread;
 
         let pubkey_dev = state
@@ -149,10 +162,7 @@ impl HashEngine for CudaEngine {
         // Seed g_best_packed with the current best level shifted into the
         // high byte so atomicMax suppresses any equal-or-lower find.
         let seed: u64 = (params.current_best_level as u64) << 56;
-        let mut g_best_dev = state
-            .stream
-            .memcpy_stod(&[seed])
-            .map_err(map_driver_err)?;
+        let mut g_best_dev = state.stream.memcpy_stod(&[seed]).map_err(map_driver_err)?;
 
         let cfg = LaunchConfig {
             grid_dim: (total_blocks, 1, 1),
@@ -173,7 +183,10 @@ impl HashEngine for CudaEngine {
         unsafe { launch.launch(cfg) }.map_err(map_driver_err)?;
 
         state.stream.synchronize().map_err(map_driver_err)?;
-        let host_vec = state.stream.memcpy_dtov(&g_best_dev).map_err(map_driver_err)?;
+        let host_vec = state
+            .stream
+            .memcpy_dtov(&g_best_dev)
+            .map_err(map_driver_err)?;
         let packed = host_vec[0];
         let level = ((packed >> 56) & 0xFF) as u8;
         let counter = packed & 0x00FF_FFFF_FFFF_FFFF;

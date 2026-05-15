@@ -22,18 +22,19 @@ use std::path::{Path, PathBuf};
 
 /// Persist `identity` back to `path`.
 pub fn write_back(path: &Path, identity: &IdentityFile) -> Result<()> {
-    let parent = path.parent().ok_or_else(|| {
-        Error::Io {
-            path: path.to_owned(),
-            source: std::io::Error::new(std::io::ErrorKind::InvalidInput, "path has no parent"),
-        }
+    let parent = path.parent().ok_or_else(|| Error::Io {
+        path: path.to_owned(),
+        source: std::io::Error::new(std::io::ErrorKind::InvalidInput, "path has no parent"),
     })?;
 
     let f = OpenOptions::new()
         .read(true)
         .write(true)
         .open(path)
-        .map_err(|source| Error::Io { path: path.to_owned(), source })?;
+        .map_err(|source| Error::Io {
+            path: path.to_owned(),
+            source,
+        })?;
     flock_exclusive(&f, true).map_err(|_| Error::Locked(path.to_owned()))?;
 
     let bak = backup_path(path);
@@ -50,7 +51,10 @@ pub fn write_back(path: &Path, identity: &IdentityFile) -> Result<()> {
         .prefix(".ts3level-")
         .suffix(".tmp")
         .tempfile_in(parent)
-        .map_err(|source| Error::Io { path: parent.to_owned(), source })?;
+        .map_err(|source| Error::Io {
+            path: parent.to_owned(),
+            source,
+        })?;
 
     let bytes = identity.to_bytes();
     tmp.write_all(&bytes).map_err(|source| Error::Io {
@@ -84,7 +88,10 @@ pub fn probe_lock(path: &Path) -> Result<()> {
     let f = OpenOptions::new()
         .read(true)
         .open(path)
-        .map_err(|source| Error::Io { path: path.to_owned(), source })?;
+        .map_err(|source| Error::Io {
+            path: path.to_owned(),
+            source,
+        })?;
     match flock_exclusive(&f, false) {
         Ok(()) => Ok(()),
         Err(_) => Err(Error::Locked(path.to_owned())),

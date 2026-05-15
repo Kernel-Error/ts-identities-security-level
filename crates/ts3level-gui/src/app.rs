@@ -16,7 +16,9 @@ fn register_about_action(app: &adw::Application) {
     let action = gio::SimpleAction::new("about", None);
     let app_weak = app.downgrade();
     action.connect_activate(move |_, _| {
-        let Some(app) = app_weak.upgrade() else { return };
+        let Some(app) = app_weak.upgrade() else {
+            return;
+        };
         show_about(&app);
     });
     app.add_action(&action);
@@ -38,7 +40,7 @@ fn show_about(app: &adw::Application) {
         .copyright("© 2026 Sebastian van de Meer (kernel-error.de)")
         .license_type(gtk::License::MitX11)
         .comments(tr(
-"TS3 Identity Level computes the SHA-1 proof-of-work that determines a \
+            "TS3 Identity Level computes the SHA-1 proof-of-work that determines a \
 TeamSpeak 3 identity's security level — only much faster than the official \
 client, by running on your GPU.
 
@@ -78,11 +80,7 @@ here for descriptive purposes only.",
 
     about.add_acknowledgement_section(
         Some(&tr("Runtime libraries")),
-        &[
-            "gtk4-rs & libadwaita-rs",
-            "cudarc",
-            "nvml-wrapper",
-        ],
+        &["gtk4-rs & libadwaita-rs", "cudarc", "nvml-wrapper"],
     );
 
     if let Some(parent) = parent {

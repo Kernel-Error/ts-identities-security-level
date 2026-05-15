@@ -3,8 +3,6 @@
 //! thread (see `worker.rs`); UI updates arrive on an `async_channel`.
 
 use crate::i18n::tr;
-use ts3level_engine::gpu_stats::HISTORY_LEN;
-use ts3level_engine::GpuStats;
 use crate::worker::{spawn_worker, WorkerCommand, WorkerEvent};
 use adw::prelude::*;
 use adw::subclass::prelude::*;
@@ -16,6 +14,8 @@ use std::rc::Rc;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::mpsc::Sender;
 use std::sync::Arc;
+use ts3level_engine::gpu_stats::HISTORY_LEN;
+use ts3level_engine::GpuStats;
 use ts3level_engine::{DeviceInfo, HashEngine};
 
 mod imp {
@@ -160,11 +160,10 @@ impl MainWindow {
 
         // Cairo draw callback — reads `imp.gpu_stats.history`.
         let win = self.downgrade();
-        imp.util_graph
-            .set_draw_func(move |_area, ctx, w, h| {
-                let Some(win) = win.upgrade() else { return };
-                draw_util_graph(&win, ctx, w, h);
-            });
+        imp.util_graph.set_draw_func(move |_area, ctx, w, h| {
+            let Some(win) = win.upgrade() else { return };
+            draw_util_graph(&win, ctx, w, h);
+        });
 
         // 1 Hz polling on the main loop. Stops when the window is dropped.
         let win = self.downgrade();
@@ -190,14 +189,13 @@ impl MainWindow {
                 .map(|u| format!("{u} %"))
                 .unwrap_or_else(|| "—".into()),
         );
-        imp.vram_label.set_text(&match (sample.mem_used_mib, sample.mem_total_mib) {
-            (Some(u), Some(t)) => format!(
-                "{:.1} / {:.1} GiB",
-                u as f64 / 1024.0,
-                t as f64 / 1024.0
-            ),
-            _ => "—".into(),
-        });
+        imp.vram_label
+            .set_text(&match (sample.mem_used_mib, sample.mem_total_mib) {
+                (Some(u), Some(t)) => {
+                    format!("{:.1} / {:.1} GiB", u as f64 / 1024.0, t as f64 / 1024.0)
+                }
+                _ => "—".into(),
+            });
         imp.temp_label.set_text(
             &sample
                 .temp_c
@@ -284,8 +282,7 @@ impl MainWindow {
 
     fn set_identity_path(&self, path: PathBuf) {
         let imp = self.imp();
-        imp.identity_row
-            .set_subtitle(&path.display().to_string());
+        imp.identity_row.set_subtitle(&path.display().to_string());
         *imp.selected_path.borrow_mut() = Some(path.clone());
 
         if let Err(e) = self.load_identity_details(&path) {
@@ -314,10 +311,8 @@ impl MainWindow {
         let pubkey_b64 = kp.public_key_base64();
         let level = ts3level_core::level::compute_level(&pubkey_b64, id.counter());
 
-        imp.nickname_label
-            .set_text(id.nickname().unwrap_or("—"));
-        imp.local_id_label
-            .set_text(id.local_id().unwrap_or("—"));
+        imp.nickname_label.set_text(id.nickname().unwrap_or("—"));
+        imp.local_id_label.set_text(id.local_id().unwrap_or("—"));
         imp.current_level_label.set_text(&level.to_string());
         imp.current_counter_label
             .set_text(&id.counter().to_string());
@@ -363,7 +358,8 @@ impl MainWindow {
     fn on_start_clicked(&self) {
         let imp = self.imp();
         let Some(path) = imp.selected_path.borrow().clone() else {
-            imp.status_label.set_text(&tr("Pick an identity file first"));
+            imp.status_label
+                .set_text(&tr("Pick an identity file first"));
             return;
         };
         let device_index = imp.device_combo.selected();
@@ -393,8 +389,7 @@ impl MainWindow {
             }
         });
 
-        let (worker_tx, stop_flag) =
-            spawn_worker(path, device_index as u32, endless, target, sender);
+        let (worker_tx, stop_flag) = spawn_worker(path, device_index, endless, target, sender);
         *imp.worker_tx.borrow_mut() = Some(worker_tx);
         *imp.stop_flag.borrow_mut() = Some(stop_flag);
     }
@@ -468,11 +463,7 @@ fn draw_util_graph(win: &MainWindow, ctx: &gtk::cairo::Context, w: i32, h: i32) 
         return;
     }
     let n = HISTORY_LEN.max(1);
-    let dx = if n > 1 {
-        w / (n as f64 - 1.0)
-    } else {
-        w
-    };
+    let dx = if n > 1 { w / (n as f64 - 1.0) } else { w };
     let pad = n.saturating_sub(history.len());
     let at = |i: usize| -> (f64, f64) {
         let val = if i < pad { 0.0 } else { history[i - pad] };

@@ -27,7 +27,9 @@ fn engine_or_skip() -> Option<CudaEngine> {
 
 #[test]
 fn cuda_matches_cpu_for_first_million_counters() {
-    let Some(mut engine) = engine_or_skip() else { return };
+    let Some(mut engine) = engine_or_skip() else {
+        return;
+    };
 
     // Window of 1M counters. We expect at least one level >= 6
     // (probability per attempt: 1/64) with overwhelmingly high confidence.
@@ -61,7 +63,9 @@ fn cuda_matches_cpu_for_first_million_counters() {
 
 #[test]
 fn cuda_finds_higher_level_when_extending_window() {
-    let Some(mut engine) = engine_or_skip() else { return };
+    let Some(mut engine) = engine_or_skip() else {
+        return;
+    };
     let mut best = 0u8;
     let mut start = 0u64;
     for _ in 0..8 {
@@ -75,7 +79,11 @@ fn cuda_finds_higher_level_when_extending_window() {
         if r.best_level > best {
             // Sanity-check on CPU.
             let cpu = compute_level(PUBKEY_B64, r.best_counter);
-            assert_eq!(cpu, r.best_level, "CPU mismatch at counter {}", r.best_counter);
+            assert_eq!(
+                cpu, r.best_level,
+                "CPU mismatch at counter {}",
+                r.best_counter
+            );
             best = r.best_level;
         }
         start = start.saturating_add(r.hashes_performed);
@@ -84,5 +92,8 @@ fn cuda_finds_higher_level_when_extending_window() {
         }
     }
     println!("Reached level {best} after sweeping {start} counters");
-    assert!(best >= 4, "expected to reach at least level 4, only got {best}");
+    assert!(
+        best >= 4,
+        "expected to reach at least level 4, only got {best}"
+    );
 }

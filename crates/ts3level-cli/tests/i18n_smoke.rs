@@ -18,7 +18,8 @@ fn locale_installed(prefix: &str) -> bool {
     let out = std::process::Command::new("locale").arg("-a").output();
     let Ok(out) = out else { return false };
     let s = String::from_utf8_lossy(&out.stdout);
-    s.lines().any(|line| line.to_lowercase().starts_with(&prefix.to_lowercase()))
+    s.lines()
+        .any(|line| line.to_lowercase().starts_with(&prefix.to_lowercase()))
 }
 
 fn synthetic_ini(counter: u64) -> (tempfile::TempDir, PathBuf) {

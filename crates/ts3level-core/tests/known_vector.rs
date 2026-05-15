@@ -50,7 +50,7 @@ fn synthetic_full_der(x: &[u8; 32], y: &[u8; 32], k: &[u8; 32]) -> Vec<u8> {
 
     let mut body = Vec::new();
     body.extend_from_slice(&[0x03, 0x02, 0x07, 0x80]); // BIT STRING flags=1 (private)
-    body.extend_from_slice(&[0x02, 0x01, 0x20]);       // SHORT INTEGER keysize=32
+    body.extend_from_slice(&[0x02, 0x01, 0x20]); // SHORT INTEGER keysize=32
     body.extend(integer(x));
     body.extend(integer(y));
     body.extend(integer(k));
@@ -86,8 +86,9 @@ fn make_blob_b64(der: &[u8]) -> String {
 fn roundtrip_synthetic_identity_through_full_pipeline() {
     // 1. Fixed input material.
     let x: [u8; 32] = [
-        0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f, 0x10,
-        0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17, 0x18, 0x19, 0x1a, 0x1b, 0x1c, 0x1d, 0x1e, 0x1f, 0x20,
+        0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f,
+        0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17, 0x18, 0x19, 0x1a, 0x1b, 0x1c, 0x1d, 0x1e,
+        0x1f, 0x20,
     ];
     let y: [u8; 32] = [0xaa; 32];
     let k: [u8; 32] = [0x55; 32];
@@ -147,11 +148,15 @@ fn ini_modify_counter_preserves_recoverable_public_key() {
     let ini = format!("[Identity]\nidentity=\"1V{blob_b64}\"\n");
     let mut file = IdentityFile::parse(ini.as_bytes()).unwrap();
 
-    let before = KeyPair::from_blob_b64(file.blob_b64()).unwrap().public_key_base64();
+    let before = KeyPair::from_blob_b64(file.blob_b64())
+        .unwrap()
+        .public_key_base64();
     file.set_counter(99999);
     let after_bytes = file.to_bytes();
     let after = IdentityFile::parse(&after_bytes).unwrap();
-    let after_pub = KeyPair::from_blob_b64(after.blob_b64()).unwrap().public_key_base64();
+    let after_pub = KeyPair::from_blob_b64(after.blob_b64())
+        .unwrap()
+        .public_key_base64();
 
     assert_eq!(before, after_pub);
 }

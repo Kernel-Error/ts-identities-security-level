@@ -48,7 +48,9 @@ impl KeyPair {
         // After deobfuscation, `outer` is an ASCII base64 string of the
         // ASN.1 DER, NUL-terminated and possibly NUL-padded.
         let asciiend = outer.iter().position(|b| *b == 0).unwrap_or(outer.len());
-        let inner = B64.decode(&outer[..asciiend]).map_err(|_| Error::BadInnerBase64)?;
+        let inner = B64
+            .decode(&outer[..asciiend])
+            .map_err(|_| Error::BadInnerBase64)?;
         Self::from_der(&inner)
     }
 
@@ -194,7 +196,9 @@ fn read_tag(buf: &[u8], expected_tag: u8) -> Result<(&[u8], &[u8])> {
 /// Decode a DER length field and return `(length, length_field_size_in_bytes)`.
 fn read_length(buf: &[u8]) -> Result<(usize, usize)> {
     if buf.is_empty() {
-        return Err(Error::Asn1("unexpected end of buffer reading length".into()));
+        return Err(Error::Asn1(
+            "unexpected end of buffer reading length".into(),
+        ));
     }
     let first = buf[0];
     if first < 0x80 {
@@ -202,7 +206,9 @@ fn read_length(buf: &[u8]) -> Result<(usize, usize)> {
     }
     let n = (first & 0x7F) as usize;
     if n == 0 || n > 4 {
-        return Err(Error::Asn1(format!("indefinite or oversized length field ({n})")));
+        return Err(Error::Asn1(format!(
+            "indefinite or oversized length field ({n})"
+        )));
     }
     if buf.len() < 1 + n {
         return Err(Error::Asn1("truncated multi-byte length".into()));
@@ -223,12 +229,7 @@ fn encode_length(len: usize) -> Vec<u8> {
         vec![0x82, (len >> 8) as u8, len as u8]
     } else {
         // No legitimate TS3 keypair reaches this branch, but keep it correct.
-        vec![
-            0x83,
-            (len >> 16) as u8,
-            (len >> 8) as u8,
-            len as u8,
-        ]
+        vec![0x83, (len >> 16) as u8, (len >> 8) as u8, len as u8]
     }
 }
 
@@ -267,7 +268,7 @@ mod tests {
     fn synthetic_public_der(x: &[u8], y: &[u8]) -> Vec<u8> {
         let mut body = Vec::new();
         body.extend_from_slice(&[0x03, 0x02, 0x07, 0x00]); // flags=0
-        body.extend_from_slice(&[0x02, 0x01, 0x20]);       // keysize=32
+        body.extend_from_slice(&[0x02, 0x01, 0x20]); // keysize=32
         body.push(0x02);
         body.push(x.len() as u8);
         body.extend_from_slice(x);
@@ -372,7 +373,7 @@ mod tests {
         // exact same bytes back.
         let mut body = Vec::new();
         body.extend_from_slice(&[0x03, 0x02, 0x07, 0x00]); // flags=0
-        body.extend_from_slice(&[0x02, 0x01, 0x20]);       // keysize=32
+        body.extend_from_slice(&[0x02, 0x01, 0x20]); // keysize=32
 
         // x: 33-byte INTEGER content = 0x00 + 32 bytes of 0x80.
         body.push(0x02);

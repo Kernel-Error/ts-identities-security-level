@@ -37,11 +37,11 @@ fn lookup_kv<'a>(lines: &'a [Line], key: &str) -> Option<&'a str> {
             let s = std::str::from_utf8(bytes).ok()?;
             // Strip CRLF/LF.
             let s = s.trim_end_matches('\n').trim_end_matches('\r');
-            let mut t = s.trim_start_matches(|c: char| c == ' ' || c == '\t');
+            let mut t = s.trim_start_matches([' ', '\t']);
             if let Some(rest) = t.strip_prefix(key) {
-                t = rest.trim_start_matches(|c: char| c == ' ' || c == '\t');
+                t = rest.trim_start_matches([' ', '\t']);
                 if let Some(value) = t.strip_prefix('=') {
-                    return Some(value.trim_start_matches(|c: char| c == ' ' || c == '\t'));
+                    return Some(value.trim_start_matches([' ', '\t']));
                 }
             }
         }
@@ -71,7 +71,10 @@ impl IdentityFile {
         }
 
         let identity_idx = identity_idx.ok_or(Error::NoIdentityKey)?;
-        Ok(Self { lines, identity_idx })
+        Ok(Self {
+            lines,
+            identity_idx,
+        })
     }
 
     /// Decimal counter currently encoded before the `V`.
@@ -123,7 +126,12 @@ impl IdentityFile {
         for line in &self.lines {
             match line {
                 Line::Verbatim(bytes) => out.extend_from_slice(bytes),
-                Line::Identity { prefix, counter, blob_b64, suffix } => {
+                Line::Identity {
+                    prefix,
+                    counter,
+                    blob_b64,
+                    suffix,
+                } => {
                     out.extend_from_slice(prefix);
                     let mut buf = itoa_decimal(*counter);
                     out.append(&mut buf);
@@ -177,7 +185,7 @@ impl<'a> Iterator for LineIter<'a> {
 fn try_parse_identity_line(raw: &[u8]) -> Option<Line> {
     // strip leading whitespace, but remember it for prefix
     let mut i = 0;
-    while i < raw.len() && (raw[i] == b' ' || raw[i] == b'\t') {
+    while i < raw.len() && matches!(raw[i], b' ' | b'\t') {
         i += 1;
     }
     let key = b"identity";
@@ -213,7 +221,12 @@ fn try_parse_identity_line(raw: &[u8]) -> Option<Line> {
     let blob_b64 = std::str::from_utf8(blob_bytes).ok()?.to_owned();
     let prefix = raw[..prefix_end].to_vec();
     let suffix = raw[prefix_end + closing..].to_vec(); // starts with closing `"`
-    Some(Line::Identity { prefix, counter, blob_b64, suffix })
+    Some(Line::Identity {
+        prefix,
+        counter,
+        blob_b64,
+        suffix,
+    })
 }
 
 fn itoa_decimal(mut n: u64) -> Vec<u8> {

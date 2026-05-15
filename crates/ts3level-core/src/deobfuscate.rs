@@ -68,7 +68,10 @@ mod tests {
     fn tskey_is_128_ascii_hex() {
         assert_eq!(TSKEY.len(), 128);
         for b in TSKEY.iter() {
-            assert!(matches!(*b, b'0'..=b'9' | b'a'..=b'f'), "byte {b:#x} not hex");
+            assert!(
+                matches!(*b, b'0'..=b'9' | b'a'..=b'f'),
+                "byte {b:#x} not hex"
+            );
         }
     }
 

@@ -3,10 +3,7 @@
 #[derive(Debug, Clone)]
 pub enum Progress {
     /// A new best level was found and the file has been written.
-    NewBest {
-        level: u8,
-        counter: u64,
-    },
+    NewBest { level: u8, counter: u64 },
 
     /// Periodic status tick — current hashrate (hashes per second,
     /// exponentially smoothed) and current best.

@@ -71,7 +71,10 @@ fn msgfmt() -> Result<()> {
     }
     eprintln!("done ({count} languages)");
     eprintln!();
-    eprintln!("To test, run with: LANG=de_DE.UTF-8 TS3LEVEL_LOCALEDIR={}", out_root.display());
+    eprintln!(
+        "To test, run with: LANG=de_DE.UTF-8 TS3LEVEL_LOCALEDIR={}",
+        out_root.display()
+    );
     Ok(())
 }
 

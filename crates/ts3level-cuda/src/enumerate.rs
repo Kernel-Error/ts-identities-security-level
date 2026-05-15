@@ -54,9 +54,7 @@ fn init_driver() -> Result<(), EngineError> {
             // Translate well-known driver-load failures into a clear
             // DriverMissing variant; everything else bubbles up.
             match code {
-                sys::cudaError_enum::CUDA_ERROR_NO_DEVICE => {
-                    Err(EngineError::NoDevice)
-                }
+                sys::cudaError_enum::CUDA_ERROR_NO_DEVICE => Err(EngineError::NoDevice),
                 _ => Err(EngineError::DriverMissing(format!("cuInit: {e:?}"))),
             }
         }

@@ -78,14 +78,20 @@ pub fn run_preflight(
     let identity = check_file_and_parse(identity_path)?;
     let current_counter = identity.counter();
     let devices = engine_preflight(engine)?;
-    Ok(PreflightReport { identity, current_counter, devices })
+    Ok(PreflightReport {
+        identity,
+        current_counter,
+        devices,
+    })
 }
 
 fn check_file_and_parse(path: &Path) -> Result<IdentityFile, PreflightError> {
     use std::os::unix::fs::MetadataExt;
 
     let metadata = std::fs::metadata(path).map_err(|e| match e.kind() {
-        std::io::ErrorKind::NotFound => PreflightError::NotFound { path: path.to_owned() },
+        std::io::ErrorKind::NotFound => PreflightError::NotFound {
+            path: path.to_owned(),
+        },
         std::io::ErrorKind::PermissionDenied => PreflightError::NotReadable {
             path: path.to_owned(),
             our_uid: nix_uid(),
@@ -124,7 +130,9 @@ fn check_file_and_parse(path: &Path) -> Result<IdentityFile, PreflightError> {
     match std::fs::OpenOptions::new().write(true).open(path) {
         Ok(_) => {}
         Err(e) if e.kind() == std::io::ErrorKind::PermissionDenied => {
-            return Err(PreflightError::NotWritable { path: path.to_owned() });
+            return Err(PreflightError::NotWritable {
+                path: path.to_owned(),
+            });
         }
         Err(e) => {
             return Err(PreflightError::InvalidFile {
@@ -147,7 +155,9 @@ fn check_file_and_parse(path: &Path) -> Result<IdentityFile, PreflightError> {
             let _ = std::fs::remove_file(probe);
         }
         Err(e) if e.kind() == std::io::ErrorKind::PermissionDenied => {
-            return Err(PreflightError::ParentNotWritable { path: parent.to_owned() });
+            return Err(PreflightError::ParentNotWritable {
+                path: parent.to_owned(),
+            });
         }
         Err(_) => { /* non-fatal: continue, write_back will surface it */ }
     }
@@ -176,10 +186,14 @@ fn check_file_and_parse(path: &Path) -> Result<IdentityFile, PreflightError> {
 
 fn engine_preflight(engine: &dyn HashEngine) -> Result<Vec<DeviceInfo>, PreflightError> {
     match engine.enumerate() {
-        Ok(v) if v.is_empty() => Err(PreflightError::NoDevice { backend: engine.kind() }),
+        Ok(v) if v.is_empty() => Err(PreflightError::NoDevice {
+            backend: engine.kind(),
+        }),
         Ok(v) => Ok(v),
         Err(EngineError::DriverMissing(m)) => Err(PreflightError::DriverMissing(m)),
-        Err(EngineError::NoDevice) => Err(PreflightError::NoDevice { backend: engine.kind() }),
+        Err(EngineError::NoDevice) => Err(PreflightError::NoDevice {
+            backend: engine.kind(),
+        }),
         Err(EngineError::DevicePermission { path, reason }) => {
             Err(PreflightError::DevicePermission {
                 detail: format!("{path:?}: {reason}"),
@@ -248,7 +262,11 @@ identity=\"42Vr4FEM/ERFubjCxz6qh/yTZapjpx4UmRSQ34gegxCbGAtXXN1VgICMSxGCzReDAEACF
         let dir = tempfile::tempdir().unwrap();
         let p = dir.path().join("locked.ini");
         std::fs::write(&p, SAMPLE_INI).unwrap();
-        let f = std::fs::OpenOptions::new().read(true).write(true).open(&p).unwrap();
+        let f = std::fs::OpenOptions::new()
+            .read(true)
+            .write(true)
+            .open(&p)
+            .unwrap();
         rustix::fs::flock(f.as_fd(), rustix::fs::FlockOperation::LockExclusive).unwrap();
         let eng = MockEngine::new();
         let err = run_preflight(&p, &eng).unwrap_err();

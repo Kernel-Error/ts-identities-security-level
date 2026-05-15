@@ -45,7 +45,11 @@ fn synthetic_ini(counter: u64) -> (tempfile::TempDir, PathBuf) {
 
 #[test]
 fn help_works_and_lists_main_flags() {
-    let assert = Command::cargo_bin("ts3level").unwrap().arg("--help").assert().success();
+    let assert = Command::cargo_bin("ts3level")
+        .unwrap()
+        .arg("--help")
+        .assert()
+        .success();
     let out = String::from_utf8_lossy(&assert.get_output().stdout).into_owned();
     for needle in ["--target", "--device", "--list-devices", "--batch-size"] {
         assert!(out.contains(needle), "help missing flag {needle}\n{out}");
@@ -142,7 +146,10 @@ fn raises_level_to_target_and_writes_bak() {
     // .bak must exist and contain the original counter=0.
     assert!(bak.exists(), ".bak file not created");
     let bak_content = std::fs::read_to_string(&bak).unwrap();
-    assert!(bak_content.contains("identity=\"0V"), "bak not pristine: {bak_content}");
+    assert!(
+        bak_content.contains("identity=\"0V"),
+        "bak not pristine: {bak_content}"
+    );
 
     // The actual file must now have a counter > 0 and a level >= 20 by
     // CPU verification.

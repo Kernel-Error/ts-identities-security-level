@@ -97,7 +97,12 @@ impl Driver {
 
             if let StopMode::Target(t) = self.stop_mode {
                 if best_level >= t {
-                    self.emit_done(&progress, DoneReason::TargetReached, best_level, best_counter);
+                    self.emit_done(
+                        &progress,
+                        DoneReason::TargetReached,
+                        best_level,
+                        best_counter,
+                    );
                     return Ok(());
                 }
             }
@@ -231,8 +236,7 @@ mod tests {
 
     #[test]
     fn eta_calculation_target_mode() {
-        let (next, target) =
-            compute_eta(1_000_000_000.0, 20, StopMode::Target(40));
+        let (next, target) = compute_eta(1_000_000_000.0, 20, StopMode::Target(40));
         // 2^21 / 1e9
         assert!(next.unwrap() > 0.0 && next.unwrap() < 0.01);
         // 2^40 / 1e9 = 1099 s
@@ -307,11 +311,20 @@ mod tests {
         driver.run(tx).unwrap();
 
         let events: Vec<_> = rx.iter().collect();
-        let new_best = events.iter().find(|e| matches!(e, Progress::NewBest { .. }));
-        assert!(new_best.is_some(), "expected at least one NewBest, got {events:?}");
+        let new_best = events
+            .iter()
+            .find(|e| matches!(e, Progress::NewBest { .. }));
+        assert!(
+            new_best.is_some(),
+            "expected at least one NewBest, got {events:?}"
+        );
 
         let done = events.iter().rev().find_map(|e| match e {
-            Progress::Done { reason, final_level, .. } => Some((reason, final_level)),
+            Progress::Done {
+                reason,
+                final_level,
+                ..
+            } => Some((reason, final_level)),
             _ => None,
         });
         let (reason, final_level) = done.expect("no Done event");
@@ -320,7 +333,10 @@ mod tests {
 
         // File on disk reflects the new counter.
         let after = std::fs::read_to_string(&path).unwrap();
-        assert!(!after.contains("identity=\"0V"), "counter not updated: {after}");
+        assert!(
+            !after.contains("identity=\"0V"),
+            "counter not updated: {after}"
+        );
     }
 
     #[test]
@@ -329,8 +345,7 @@ mod tests {
         let identity = IdentityFile::parse(&std::fs::read(&path).unwrap()).unwrap();
         let mut engine = Box::new(MockEngine::new());
         engine.select_device(0).unwrap();
-        let mut driver =
-            Driver::new(engine, path.clone(), identity, StopMode::Endless).unwrap();
+        let mut driver = Driver::new(engine, path.clone(), identity, StopMode::Endless).unwrap();
         driver.set_batch_size(10);
         let stop = driver.stop_handle();
         stop.store(true, Ordering::SeqCst);
@@ -358,6 +373,9 @@ mod tests {
         let bak = ts3level_core::writer::backup_path(&path);
         assert!(bak.exists(), "backup not created");
         let bak_content = std::fs::read_to_string(&bak).unwrap();
-        assert!(bak_content.contains("identity=\"0V"), "backup not pristine: {bak_content}");
+        assert!(
+            bak_content.contains("identity=\"0V"),
+            "backup not pristine: {bak_content}"
+        );
     }
 }

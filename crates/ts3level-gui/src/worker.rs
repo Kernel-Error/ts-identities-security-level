@@ -70,15 +70,20 @@ fn run_one(
     stop_flag: Arc<AtomicBool>,
 ) -> Result<(), String> {
     let mut engine = CudaEngine::new();
-    let _report =
-        run_preflight(path, &engine).map_err(|e| e.to_string())?;
-    engine.select_device(device_index).map_err(|e| e.to_string())?;
+    let _report = run_preflight(path, &engine).map_err(|e| e.to_string())?;
+    engine
+        .select_device(device_index)
+        .map_err(|e| e.to_string())?;
     let identity = IdentityFile::parse(&std::fs::read(path).map_err(|e| e.to_string())?)
         .map_err(|e| e.to_string())?;
 
-    let mode = if endless { StopMode::Endless } else { StopMode::Target(target) };
-    let mut driver =
-        Driver::new(Box::new(engine), path.to_owned(), identity, mode).map_err(|e| e.to_string())?;
+    let mode = if endless {
+        StopMode::Endless
+    } else {
+        StopMode::Target(target)
+    };
+    let mut driver = Driver::new(Box::new(engine), path.to_owned(), identity, mode)
+        .map_err(|e| e.to_string())?;
 
     // Replace driver's internal stop_flag with ours so the GUI's Stop
     // button affects this run.

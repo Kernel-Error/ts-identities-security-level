@@ -97,7 +97,10 @@ fn run(cli: &Cli) -> Result<i32> {
         return list_devices(&engine);
     }
 
-    let identity_path = cli.identity.as_ref().expect("required_unless_present guard");
+    let identity_path = cli
+        .identity
+        .as_ref()
+        .expect("required_unless_present guard");
 
     // Preflight: file checks + device enumeration.
     let report = match run_preflight(identity_path, &engine) {
@@ -124,8 +127,7 @@ fn run(cli: &Cli) -> Result<i32> {
     // see (and verify the fingerprint of) the file they're about to grind.
     let kp = KeyPair::from_blob_b64(report.identity.blob_b64())?;
     let pubkey_b64 = kp.public_key_base64();
-    let current_level =
-        ts3level_core::level::compute_level(&pubkey_b64, report.current_counter);
+    let current_level = ts3level_core::level::compute_level(&pubkey_b64, report.current_counter);
 
     print_identity_summary(&report.identity, &kp, current_level, report.current_counter);
 
@@ -199,10 +201,7 @@ fn run(cli: &Cli) -> Result<i32> {
     }
 }
 
-fn progress_loop(
-    rx: mpsc::Receiver<Progress>,
-    gpu_stats: Option<Arc<Mutex<GpuStats>>>,
-) {
+fn progress_loop(rx: mpsc::Receiver<Progress>, gpu_stats: Option<Arc<Mutex<GpuStats>>>) {
     let pb = ProgressBar::new_spinner();
     pb.set_style(
         ProgressStyle::with_template("{spinner} {msg}")
@@ -245,9 +244,19 @@ fn progress_loop(
                 ));
             }
             Progress::NewBest { level, counter } => {
-                pb.println(format!("✓ {} {} ({}={})", i18n::tr("new level"), level, i18n::tr("counter"), counter));
+                pb.println(format!(
+                    "✓ {} {} ({}={})",
+                    i18n::tr("new level"),
+                    level,
+                    i18n::tr("counter"),
+                    counter
+                ));
             }
-            Progress::Done { reason, final_level, final_counter } => {
+            Progress::Done {
+                reason,
+                final_level,
+                final_counter,
+            } => {
                 let r = match reason {
                     DoneReason::TargetReached => i18n::tr("target reached"),
                     DoneReason::Stopped => i18n::tr("stopped"),
@@ -303,23 +312,10 @@ fn report_preflight_error(e: PreflightError) -> i32 {
     }
 }
 
-fn print_identity_summary(
-    id: &ts3level_core::IdentityFile,
-    kp: &KeyPair,
-    level: u8,
-    counter: u64,
-) {
+fn print_identity_summary(id: &ts3level_core::IdentityFile, kp: &KeyPair, level: u8, counter: u64) {
     eprintln!();
-    eprintln!(
-        "{}: {}",
-        i18n::tr("Nickname"),
-        id.nickname().unwrap_or("—")
-    );
-    eprintln!(
-        "{}: {}",
-        i18n::tr("Local ID"),
-        id.local_id().unwrap_or("—")
-    );
+    eprintln!("{}: {}", i18n::tr("Nickname"), id.nickname().unwrap_or("—"));
+    eprintln!("{}: {}", i18n::tr("Local ID"), id.local_id().unwrap_or("—"));
     eprintln!("{}: {}", i18n::tr("Fingerprint"), kp.fingerprint_b64());
     eprintln!(
         "{}: {}  ({}: {})",
@@ -334,7 +330,9 @@ fn print_identity_summary(
 /// Poll NVML once and produce a compact `  GPU: 100% 76°C 165W` segment.
 /// Returns an empty string if NVML is unavailable or the sample is empty.
 fn gpu_segment(stats: Option<&Arc<Mutex<GpuStats>>>) -> String {
-    let Some(stats) = stats else { return String::new() };
+    let Some(stats) = stats else {
+        return String::new();
+    };
     let mut guard = match stats.lock() {
         Ok(g) => g,
         Err(_) => return String::new(),
