@@ -117,15 +117,31 @@ __device__ __forceinline__ int utoa64_be(uint64_t n, uint8_t* out) {
 }
 
 // ---- Main kernel -------------------------------------------------------
+//
+// Reporting uses two separate device slots, not one packed `(level <<
+// 56) | counter` word. Packing breaks once `counter >= 2^56` (which is
+// reached around level 57), because the counter's high bits then bleed
+// into the level field. With two slots there is still a benign race
+// between threads writing concurrently — `g_best_counter` may briefly
+// not match `g_best_level` — but the host always CPU-verifies the
+// counter's level before persisting, so the worst case is "wait for the
+// next batch".
 
-extern "C" __global__ void sha1_hasher(
-    const uint8_t* __restrict__ pubkey,
-    uint32_t pubkey_len,
-    uint64_t start_counter,
-    uint64_t n_per_thread,
-    uint32_t current_best_level,
-    unsigned long long* g_best_packed)
+extern "C" __global__ void sha1_hasher(const uint8_t* __restrict__ pubkey,
+                                       uint32_t pubkey_len,
+                                       uint64_t start_counter,
+                                       uint64_t n_per_thread,
+                                       uint32_t current_best_level,
+                                       unsigned int* g_best_level,
+                                       unsigned long long* g_best_counter)
 {
+    // Defense-in-depth bound check. The host (CudaEngine::launch) already
+    // refuses pubkeys longer than 110 bytes, but if the host invariant
+    // ever drifts, prevent an out-of-bounds write into `msg[]` below.
+    if (pubkey_len + /*max counter*/ 20 + /*0x80*/ 1 + /*length*/ 8 > MAX_INPUT_BYTES) {
+        return;
+    }
+
     const uint64_t tid = (uint64_t)blockIdx.x * blockDim.x + threadIdx.x;
     const uint64_t base = start_counter + tid * n_per_thread;
 
@@ -142,10 +158,6 @@ extern "C" __global__ void sha1_hasher(
 
         const int counter_len = utoa64_be(counter, msg + pubkey_len);
         const int total = (int)pubkey_len + counter_len;
-        if (total + 1 + 8 > MAX_INPUT_BYTES) {
-            // Should never happen for realistic pubkeys/counters; bail.
-            return;
-        }
 
         // SHA-1 padding.
         msg[total] = 0x80;
@@ -162,8 +174,8 @@ extern "C" __global__ void sha1_hasher(
         msg[padded - 5] = (uint8_t)(bit_len >> 32);
         msg[padded - 4] = (uint8_t)(bit_len >> 24);
         msg[padded - 3] = (uint8_t)(bit_len >> 16);
-        msg[padded - 2] = (uint8_t)(bit_len >>  8);
-        msg[padded - 1] = (uint8_t)(bit_len      );
+        msg[padded - 2] = (uint8_t)(bit_len >> 8);
+        msg[padded - 1] = (uint8_t)(bit_len);
 
         uint32_t h[5] = {
             0x67452301u, 0xEFCDAB89u, 0x98BADCFEu, 0x10325476u, 0xC3D2E1F0u,
@@ -174,9 +186,13 @@ extern "C" __global__ void sha1_hasher(
 
         const uint32_t level = digest_level(h);
         if (level > current_best_level) {
-            unsigned long long packed =
-                ((unsigned long long)level << 56) | (unsigned long long)counter;
-            atomicMax(g_best_packed, packed);
+            // Claim the new best level. If we win the race, publish our
+            // counter. The race window between the two atomics is small
+            // and the host re-verifies via CPU before persisting.
+            unsigned int prev_level = atomicMax(g_best_level, level);
+            if (level > prev_level) {
+                atomicExch(g_best_counter, (unsigned long long)counter);
+            }
         }
     }
 }

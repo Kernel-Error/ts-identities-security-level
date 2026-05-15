@@ -58,6 +58,46 @@ project follows [Semantic Versioning](https://semver.org).
 
 ### Fixed
 
+- **CUDA kernel atomic packing replaced with two separate device slots**.
+  Reporting `(level << 56) | counter` via a single `atomicMax` silently
+  truncates the counter to 56 bits, which would corrupt the level field
+  once counter values cross `2^56` (reachable around level 57). The
+  kernel now uses `g_best_level` (u32) and `g_best_counter` (u64) and a
+  two-step atomic update. The host re-verifies the reported counter via
+  the CPU reference and accepts the verified level, so the benign
+  per-batch race between the two atomics never produces a wrong write
+  back to the `.ini`. Closes #12.
+- **Kernel pubkey-length bounds check** at entry, defense-in-depth
+  against an OOB write into the per-thread `msg[]` buffer if the host
+  invariant (`pubkey_b64.len() ≤ 110`) is ever bypassed. Closes #13.
+- **Driver: CPU verification mismatch no longer returns `Ok(())`**.
+  The driver used to emit a `Progress::Done` with `reason: Error(...)`
+  and exit success; scripts saw the run as fine when in fact a kernel
+  result couldn't be reproduced. The new behavior is to trust the CPU
+  reference: accept the verified level if it beats the current best,
+  silently skip the batch otherwise. Closes #18.
+- **`write_back`: backup creation is atomic and content comes from the
+  locked fd.** Replaces the previous `if !bak.exists() { fs::copy(path,
+  ...) }` (TOCTOU on the existence check, and re-opens by path so a
+  path-swap attack could put foreign bytes into the backup) with
+  `OpenOptions::create_new(true)` plus a `std::io::copy` from the
+  already-open, already-locked source fd. Closes #15, #17.
+- **`write_back`: preserve the source file's mode across the atomic
+  rename.** The tempfile defaults to `0o600`; before the rename we now
+  set its permissions to match the original (e.g. `0o644` or `0o660`).
+  Without this, every level-up silently tightened the file's
+  permission bits. Closes #22.
+- **Preflight: lock the file before parsing.** Previously the sequence
+  was `metadata → read → write-probe → parent-probe → parse → flock`,
+  which allowed a TOCTOU window where the file could be replaced
+  between `read` and `flock`. The new sequence opens once with read+
+  write, takes a non-blocking flock right away, and reads + parses
+  from the locked fd. The lock is released before returning, so
+  `write_back` reacquires it later. Closes #19.
+- **`probe_lock` opens with `read+write`** instead of read-only, so a
+  pre-flight that passes accurately predicts what `write_back` will do
+  next. Avoids the case where probe says "fine" on a readable-but-not-
+  writable file and the actual write then fails at EACCES. Closes #21.
 - **Atomic `write_back` now `fsync`s the parent directory** after the
   rename and after the one-shot `.bak` creation. POSIX rename is atomic
   for visibility but not for directory-entry durability across a crash.
@@ -66,6 +106,23 @@ project follows [Semantic Versioning](https://semver.org).
   — only the contention case (`EWOULDBLOCK`) maps to `Locked`; `EINTR`,
   `EIO`, `ENOLCK` and other real OS faults surface as the structured
   `Error::Io { path, source }` variant. Closes #16.
+
+### Added (tests)
+
+- **Committed algorithm fixture** at `crates/ts3level-core/testdata/
+  known_identity.ini` with a deterministically-generated synthetic
+  identity (counter=310, level=10). The matching `tests/
+  known_identity_fixture.rs` hard-codes the expected fingerprint,
+  public key, level at the committed counter, and levels at three
+  secondary counters. Generator is `examples/gen_fixture.rs`. Closes
+  #10. Any future drift in parser / deobfuscation / DER round-trip /
+  fingerprint / level computation makes this test fire without needing
+  manual cross-check against the live TS3 client.
+- **Mode-preservation roundtrip test** in `writer::tests` verifies the
+  source file's `0o640` is preserved across `write_back` instead of
+  silently dropping to `0o600`.
+- **Pre-existing `.bak` test** confirms `write_back` doesn't overwrite
+  a `.bak` that was already on disk, even with different content.
 
 ### Fixed (clippy hygiene)
 

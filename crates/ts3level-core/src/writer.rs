@@ -16,8 +16,9 @@
 use crate::error::{Error, Result};
 use crate::ini::IdentityFile;
 use std::fs::OpenOptions;
-use std::io::Write;
+use std::io::{Seek, SeekFrom, Write};
 use std::os::fd::AsFd;
+use std::os::unix::fs::PermissionsExt;
 use std::path::{Path, PathBuf};
 
 /// Persist `identity` back to `path`.
@@ -27,7 +28,7 @@ pub fn write_back(path: &Path, identity: &IdentityFile) -> Result<()> {
         source: std::io::Error::new(std::io::ErrorKind::InvalidInput, "path has no parent"),
     })?;
 
-    let f = OpenOptions::new()
+    let mut f = OpenOptions::new()
         .read(true)
         .write(true)
         .open(path)
@@ -43,14 +44,50 @@ pub fn write_back(path: &Path, identity: &IdentityFile) -> Result<()> {
         source,
     })?;
 
-    let bak = backup_path(path);
-    if !bak.exists() {
-        std::fs::copy(path, &bak).map_err(|source| Error::Io {
-            path: bak.clone(),
+    // Capture the source mode under the lock — we restore it on the
+    // tempfile right before the rename so the post-replace inode keeps
+    // the same permission bits the user (or a previous tool) chose.
+    let source_mode = f
+        .metadata()
+        .map_err(|source| Error::Io {
+            path: path.to_owned(),
             source,
-        })?;
-        // Durably commit the new directory entry for the .bak.
-        sync_parent(parent)?;
+        })?
+        .permissions()
+        .mode();
+
+    // Backup is created exactly once over the file's lifetime. We do
+    // not rely on `.exists()` because that's a TOCTOU race; instead we
+    // ask the OS to atomically claim the new path with `O_CREAT|O_EXCL`.
+    // The content is streamed from the open, locked fd rather than via
+    // a fresh open on `path` — otherwise a swap of the path between
+    // open and copy could put foreign bytes into the backup.
+    let bak = backup_path(path);
+    match OpenOptions::new().write(true).create_new(true).open(&bak) {
+        Ok(mut bak_file) => {
+            f.seek(SeekFrom::Start(0)).map_err(|source| Error::Io {
+                path: path.to_owned(),
+                source,
+            })?;
+            std::io::copy(&mut f, &mut bak_file).map_err(|source| Error::Io {
+                path: bak.clone(),
+                source,
+            })?;
+            bak_file.sync_all().map_err(|source| Error::Io {
+                path: bak.clone(),
+                source,
+            })?;
+            sync_parent(parent)?;
+        }
+        Err(e) if e.kind() == std::io::ErrorKind::AlreadyExists => {
+            // The backup already exists. By design we never overwrite it.
+        }
+        Err(source) => {
+            return Err(Error::Io {
+                path: bak.clone(),
+                source,
+            });
+        }
     }
 
     let mut tmp = tempfile::Builder::new()
@@ -75,6 +112,16 @@ pub fn write_back(path: &Path, identity: &IdentityFile) -> Result<()> {
         path: tmp.path().to_owned(),
         source,
     })?;
+    // Mirror the source file's permission bits onto the temp file
+    // before rename, otherwise the post-replace inode inherits the
+    // tempfile default (mode 0o600) and silently tightens permissions
+    // for any user/group that previously had read access.
+    tmp.as_file()
+        .set_permissions(std::fs::Permissions::from_mode(source_mode & 0o7777))
+        .map_err(|source| Error::Io {
+            path: tmp.path().to_owned(),
+            source,
+        })?;
 
     tmp.persist(path).map_err(|e| Error::Io {
         path: path.to_owned(),
@@ -111,8 +158,13 @@ fn sync_parent(parent: &Path) -> Result<()> {
 /// lock on `path` right now, `Err(Error::Locked(_))` if someone else holds
 /// it. The lock is released immediately.
 pub fn probe_lock(path: &Path) -> Result<()> {
+    // Open with the same flags as `write_back` so a probe success is a
+    // genuine pre-flight for what the real write will do — opening
+    // read-only here would mis-report a writable-but-locked file as
+    // "fine" when the actual write would fail at EACCES.
     let f = OpenOptions::new()
         .read(true)
+        .write(true)
         .open(path)
         .map_err(|source| Error::Io {
             path: path.to_owned(),
@@ -165,6 +217,13 @@ mod tests {
     use super::*;
     use std::io::Read;
 
+    extern "C" {
+        fn geteuid() -> u32;
+    }
+    unsafe fn libc_geteuid() -> u32 {
+        geteuid()
+    }
+
     const FIXTURE: &str = "\
 [Identity]
 id=Kernel-Error
@@ -203,6 +262,55 @@ phonetic_nickname=
         write_back(&path, &id).unwrap();
         let bak_content2 = String::from_utf8(read_file_as_bytes(&bak)).unwrap();
         assert_eq!(bak_content2, FIXTURE, "backup must remain pristine");
+    }
+
+    #[test]
+    fn preserves_original_file_mode_across_rename() {
+        // Skip when running as root: chmod is honored anyway but the
+        // `set_permissions` semantics differ in edge cases. Use
+        // `nix`-free uid lookup via libc through std (env var fallback).
+        // SAFETY: `geteuid` is always safe to call on Unix.
+        let euid = unsafe { libc_geteuid() };
+        if euid == 0 {
+            return;
+        }
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("mode_keep.ini");
+        std::fs::write(&path, FIXTURE).unwrap();
+        // Pick a group-readable mode different from the tempfile
+        // default 0o600 — that's what we're guarding against.
+        let mode_before = 0o640u32;
+        std::fs::set_permissions(&path, std::fs::Permissions::from_mode(mode_before)).unwrap();
+
+        let mut id = IdentityFile::parse(FIXTURE.as_bytes()).unwrap();
+        id.set_counter(7);
+        write_back(&path, &id).unwrap();
+
+        let mode_after = std::fs::metadata(&path).unwrap().permissions().mode() & 0o7777;
+        assert_eq!(
+            mode_after, mode_before,
+            "file mode silently tightened across atomic write (was {mode_before:o}, now {mode_after:o})"
+        );
+    }
+
+    #[test]
+    fn bak_creation_is_atomic_and_one_shot() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("preexist.ini");
+        std::fs::write(&path, FIXTURE).unwrap();
+
+        let bak = backup_path(&path);
+        // Pre-create the .bak with foreign content. write_back must
+        // detect that it already exists and leave it alone — never
+        // overwrite, even though our content would be more recent.
+        std::fs::write(&bak, "preexisting backup; do not touch").unwrap();
+
+        let mut id = IdentityFile::parse(FIXTURE.as_bytes()).unwrap();
+        id.set_counter(11);
+        write_back(&path, &id).unwrap();
+
+        let on_disk = std::fs::read_to_string(&bak).unwrap();
+        assert_eq!(on_disk, "preexisting backup; do not touch");
     }
 
     #[test]

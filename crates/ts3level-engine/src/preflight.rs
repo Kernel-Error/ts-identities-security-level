@@ -7,7 +7,6 @@ use crate::device::DeviceInfo;
 use crate::engine::{EngineError, HashEngine};
 use std::path::{Path, PathBuf};
 use thiserror::Error;
-use ts3level_core::writer::probe_lock;
 use ts3level_core::IdentityFile;
 
 /// Successful preflight: identity is parsed, lockable, and the engine
@@ -91,8 +90,12 @@ pub fn run_preflight(
 }
 
 fn check_file_and_parse(path: &Path) -> Result<IdentityFile, PreflightError> {
+    use std::io::Read;
+    use std::os::fd::AsFd;
     use std::os::unix::fs::MetadataExt;
 
+    // 1. stat — establishes existence and gives us real ownership/mode
+    //    metadata to attach to a NotReadable error if the open fails.
     let metadata = std::fs::metadata(path).map_err(|e| match e.kind() {
         std::io::ErrorKind::NotFound => PreflightError::NotFound {
             path: path.to_owned(),
@@ -107,17 +110,29 @@ fn check_file_and_parse(path: &Path) -> Result<IdentityFile, PreflightError> {
         },
     })?;
 
-    // Read perm: try to open. Surface a structured error when EACCES.
-    let bytes = match std::fs::read(path) {
-        Ok(b) => b,
+    // 2. open read+write — same flags that `write_back` will use, so a
+    //    pass here predicts the real write. EACCES distinguishes
+    //    readable-but-not-writable from outright unreadable.
+    let mut f = match std::fs::OpenOptions::new()
+        .read(true)
+        .write(true)
+        .open(path)
+    {
+        Ok(f) => f,
         Err(e) if e.kind() == std::io::ErrorKind::PermissionDenied => {
-            return Err(PreflightError::NotReadable {
-                path: path.to_owned(),
-                our_uid: nix_uid(),
-                file_uid: metadata.uid(),
-                file_gid: metadata.gid(),
-                mode: metadata.mode() & 0o7777,
-            });
+            // Distinguish: can we at least read?
+            return match std::fs::OpenOptions::new().read(true).open(path) {
+                Ok(_) => Err(PreflightError::NotWritable {
+                    path: path.to_owned(),
+                }),
+                Err(_) => Err(PreflightError::NotReadable {
+                    path: path.to_owned(),
+                    our_uid: nix_uid(),
+                    file_uid: metadata.uid(),
+                    file_gid: metadata.gid(),
+                    mode: metadata.mode() & 0o7777,
+                }),
+            };
         }
         Err(e) => {
             return Err(PreflightError::InvalidFile {
@@ -127,54 +142,67 @@ fn check_file_and_parse(path: &Path) -> Result<IdentityFile, PreflightError> {
         }
     };
 
-    // Write perm probe: open in append mode does not modify content but
-    // verifies we may write. Errors with EACCES → NotWritable.
-    match std::fs::OpenOptions::new().write(true).open(path) {
-        Ok(_) => {}
-        Err(e) if e.kind() == std::io::ErrorKind::PermissionDenied => {
-            return Err(PreflightError::NotWritable {
+    // 3. flock — before reading. Catches the TOCTOU window where the
+    //    file could be replaced between stat and read.
+    match rustix::fs::flock(
+        f.as_fd(),
+        rustix::fs::FlockOperation::NonBlockingLockExclusive,
+    ) {
+        Ok(()) => {}
+        Err(e) if e == rustix::io::Errno::WOULDBLOCK => {
+            return Err(PreflightError::Locked {
                 path: path.to_owned(),
             });
         }
         Err(e) => {
             return Err(PreflightError::InvalidFile {
                 path: path.to_owned(),
-                source: ts3level_core::Error::PlainIo(e),
+                source: ts3level_core::Error::PlainIo(std::io::Error::from_raw_os_error(
+                    e.raw_os_error(),
+                )),
             });
         }
     }
 
-    // Parent dir writable (needed for atomic rename).
+    // 4. read from the locked fd. The lock guarantees that the bytes
+    //    we parse correspond to the inode we just stat'd, not to
+    //    whatever has been moved into the path since.
+    let mut bytes = Vec::with_capacity(metadata.len() as usize);
+    f.read_to_end(&mut bytes)
+        .map_err(|source| PreflightError::InvalidFile {
+            path: path.to_owned(),
+            source: ts3level_core::Error::PlainIo(source),
+        })?;
+
+    // 5. parse from those bytes.
+    let identity = IdentityFile::parse(&bytes).map_err(|source| PreflightError::InvalidFile {
+        path: path.to_owned(),
+        source,
+    })?;
+
+    // Drop f → releases the advisory lock. Real write_back will reacquire.
+    drop(f);
+
+    // 6. parent dir writable check (needed for atomic rename).
     let parent = path.parent().unwrap_or_else(|| Path::new("."));
+    let probe_path = unique_probe_path(parent);
     match std::fs::OpenOptions::new()
-        .read(true)
-        .open(parent)
-        .and_then(|_| {
-            let probe = parent.join(".ts3level-write-probe");
-            std::fs::File::create(&probe).map(|_| probe)
-        }) {
-        Ok(probe) => {
-            let _ = std::fs::remove_file(probe);
+        .write(true)
+        .create_new(true)
+        .open(&probe_path)
+    {
+        Ok(_) => {
+            let _ = std::fs::remove_file(&probe_path);
         }
         Err(e) if e.kind() == std::io::ErrorKind::PermissionDenied => {
             return Err(PreflightError::ParentNotWritable {
                 path: parent.to_owned(),
             });
         }
-        Err(_) => { /* non-fatal: continue, write_back will surface it */ }
+        Err(_) => { /* non-fatal: write_back will surface anything weirder */ }
     }
 
-    let identity = IdentityFile::parse(&bytes).map_err(|source| PreflightError::InvalidFile {
-        path: path.to_owned(),
-        source,
-    })?;
-
-    // Lock probe.
-    if let Err(ts3level_core::Error::Locked(p)) = probe_lock(path) {
-        return Err(PreflightError::Locked { path: p });
-    }
-
-    // Disk space check.
+    // 7. disk space.
     if let Some((available, required)) = disk_space_short(parent, bytes.len() as u64 * 2) {
         return Err(PreflightError::InsufficientSpace {
             path: parent.to_owned(),
@@ -218,6 +246,17 @@ fn disk_space_short(path: &Path, required: u64) -> Option<(u64, u64)> {
 
 fn nix_uid() -> u32 {
     rustix::process::geteuid().as_raw()
+}
+
+/// Per-PID-suffixed probe filename so two preflights racing in the same
+/// parent directory don't truncate each other's probe via `create_new`.
+fn unique_probe_path(parent: &Path) -> PathBuf {
+    let pid = std::process::id();
+    let nanos = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|d| d.subsec_nanos())
+        .unwrap_or(0);
+    parent.join(format!(".ts3level-write-probe-{pid}-{nanos}"))
 }
 
 #[cfg(test)]

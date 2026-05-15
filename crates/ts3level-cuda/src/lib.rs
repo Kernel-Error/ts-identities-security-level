@@ -159,10 +159,16 @@ impl HashEngine for CudaEngine {
             .stream
             .memcpy_stod(params.pubkey_b64.as_bytes())
             .map_err(map_driver_err)?;
-        // Seed g_best_packed with the current best level shifted into the
-        // high byte so atomicMax suppresses any equal-or-lower find.
-        let seed: u64 = (params.current_best_level as u64) << 56;
-        let mut g_best_dev = state.stream.memcpy_stod(&[seed]).map_err(map_driver_err)?;
+        // Two separate device slots so the level field can't be
+        // corrupted by counter values ≥ 2^56 (which the previous packed
+        // representation silently truncated). The kernel seeds level
+        // with `current_best_level`; any `atomicMax` write below that
+        // threshold is a no-op.
+        let mut g_best_level = state
+            .stream
+            .memcpy_stod(&[params.current_best_level as u32])
+            .map_err(map_driver_err)?;
+        let mut g_best_counter = state.stream.memcpy_stod(&[0u64]).map_err(map_driver_err)?;
 
         let cfg = LaunchConfig {
             grid_dim: (total_blocks, 1, 1),
@@ -179,17 +185,21 @@ impl HashEngine for CudaEngine {
         launch.arg(&params.start_counter);
         launch.arg(&n_per_thread);
         launch.arg(&current_best_level);
-        launch.arg(&mut g_best_dev);
+        launch.arg(&mut g_best_level);
+        launch.arg(&mut g_best_counter);
         unsafe { launch.launch(cfg) }.map_err(map_driver_err)?;
 
         state.stream.synchronize().map_err(map_driver_err)?;
-        let host_vec = state
+        let level_host = state
             .stream
-            .memcpy_dtov(&g_best_dev)
+            .memcpy_dtov(&g_best_level)
             .map_err(map_driver_err)?;
-        let packed = host_vec[0];
-        let level = ((packed >> 56) & 0xFF) as u8;
-        let counter = packed & 0x00FF_FFFF_FFFF_FFFF;
+        let counter_host = state
+            .stream
+            .memcpy_dtov(&g_best_counter)
+            .map_err(map_driver_err)?;
+        let level = level_host[0].min(u8::MAX as u32) as u8;
+        let counter = counter_host[0];
 
         let (best_level, best_counter) = if level > params.current_best_level {
             (level, counter)
