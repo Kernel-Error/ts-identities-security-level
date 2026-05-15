@@ -146,7 +146,24 @@ fn measure_geometry(
     let n_per_thread = PROBE_N_COUNTERS.div_ceil(total_threads as u64).max(1);
     let actual_hashes = total_threads as u64 * n_per_thread;
 
-    let pubkey_dev = stream.memcpy_stod(PROBE_PUBKEY.as_bytes())?;
+    // Mirror the launch-time prefix splitting: precompute SHA-1 over
+    // every full 64-byte block of the pubkey prefix and pass the
+    // resulting midstate, so the probe exercises the same kernel
+    // signature the real launches will use.
+    let pubkey_bytes = PROBE_PUBKEY.as_bytes();
+    let prefix_blocks = pubkey_bytes.len() / 64;
+    let prefix_len = prefix_blocks * 64;
+    let mut midstate = ts3level_core::sha1_block::SHA1_INIT;
+    for i in 0..prefix_blocks {
+        let mut block = [0u8; 64];
+        block.copy_from_slice(&pubkey_bytes[i * 64..(i + 1) * 64]);
+        ts3level_core::sha1_block::sha1_block(&mut midstate, &block);
+    }
+    let pubkey_tail = &pubkey_bytes[prefix_len..];
+    let prefix_bit_len = (prefix_len as u64) * 8;
+
+    let pubkey_dev = stream.memcpy_stod(pubkey_tail)?;
+    let midstate_dev = stream.memcpy_stod(&midstate)?;
     let mut g_best_level = stream.memcpy_stod(&[0u32])?;
     let mut g_best_counter = stream.memcpy_stod(&[0u64])?;
 
@@ -155,7 +172,7 @@ fn measure_geometry(
         block_dim: (geom.threads_per_block, 1, 1),
         shared_mem_bytes: 0,
     };
-    let pubkey_len: u32 = PROBE_PUBKEY.len() as u32;
+    let pubkey_tail_len: u32 = pubkey_tail.len() as u32;
     let start_counter: u64 = 0;
     let current_best_level: u32 = 0;
 
@@ -164,7 +181,9 @@ fn measure_geometry(
     {
         let mut launch = stream.launch_builder(func);
         launch.arg(&pubkey_dev);
-        launch.arg(&pubkey_len);
+        launch.arg(&pubkey_tail_len);
+        launch.arg(&prefix_bit_len);
+        launch.arg(&midstate_dev);
         launch.arg(&start_counter);
         launch.arg(&n_per_thread);
         launch.arg(&current_best_level);
@@ -178,7 +197,9 @@ fn measure_geometry(
     {
         let mut launch = stream.launch_builder(func);
         launch.arg(&pubkey_dev);
-        launch.arg(&pubkey_len);
+        launch.arg(&pubkey_tail_len);
+        launch.arg(&prefix_bit_len);
+        launch.arg(&midstate_dev);
         launch.arg(&start_counter);
         launch.arg(&n_per_thread);
         launch.arg(&current_best_level);

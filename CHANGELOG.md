@@ -6,22 +6,53 @@ project follows [Semantic Versioning](https://semver.org).
 
 ## [Unreleased]
 
-### Changed
+### Performance
 
+- **Host-side SHA-1 midstate precompute and an atomic-fast-path
+  rewrite roughly double the sustained hashrate on a from-scratch
+  run.** Measured on the RTX 4060 Ti, 500 M-counter window: 2.85 GH/s
+  before, **5.94 GH/s after** (+108 %). Three changes layered:
+  - **Midstate precompute.** The pubkey prefix is constant across a
+    launch, so the host SHA-1s every complete 64-byte block of it
+    once and passes the resulting `h[0..5]` to the kernel. The kernel
+    only processes the tail per attempt. For the typical TS3 P-256
+    base64 pubkey (108 chars) one full SHA-1 block per attempt drops
+    out. Implementation in `crates/ts3level-core/src/sha1_block.rs`
+    (a dependency-free 80-line transform, cross-checked against the
+    `sha1` crate by four new unit tests).
+  - **Smaller per-thread stack frame.** With midstate, the
+    `MAX_INPUT_BYTES` constant drops from 192 to 128, so the
+    register/local-memory mix shifts and the kernel's stack frame
+    shrinks from 224 to 160 bytes per thread.
+  - **Atomic fast-path on `g_best_level`.** Profiling showed the
+    kernel was atomic-bound, not compute-bound: with
+    `current_best_level = 0` (the from-scratch case) every level≥1
+    hit — roughly half of all iterations — fired an `atomicMax` on a
+    single device slot. The kernel now reads `g_best_level` through a
+    volatile pointer as a pre-filter; only matches that actually
+    exceed the current grid-wide best reach the atomic. Correctness
+    is unchanged because the CPU re-verifies every kept result.
 - **CUDA SHA-1 inner loop rewritten in the shape used by hashcat's
-  `OpenCL/inc_hash_sha1.h`** (MIT-licensed, attribution added to
-  docs/algorithm.md). New `SHA1_STEP` macro plus LOP3-friendly
-  `Ch`/`Maj` forms and `__funnelshift_l` rotates, with the standard
-  5-step register-cycling unroll. No behavioural change — the kernel
-  computes byte-identical SHA-1 to before, verified by a new
-  `many_independent_windows_match_cpu` parity test that checks 8
-  independent (counter, level) pairs against the CPU reference. On the
-  RTX 4060 Ti the hashrate is flat (~2.87 GH/s before and after),
-  because the bottleneck right now is the stack-allocated `msg[]`
-  buffer spilling to local memory, not the SHA-1 round body — the
-  payoff from this rewrite shows up combined with Phase C-2b (register
-  message buffer + in-place counter increment) and C-2c (host-side
-  midstate precompute), tracked under issue #1.
+  `OpenCL/inc_hash_sha1.h`** (MIT-licensed, attribution in
+  docs/algorithm.md). Round-function macros for Ch/Maj that nvcc
+  auto-lowers to `LOP3.LUT`, `__funnelshift_l` 32-bit rotates, and the
+  standard 5-step register-cycling unroll. By itself this change is
+  performance-flat on Ada (nvcc already lowers the textbook
+  expressions to LOP3), but it normalises the kernel's inner-loop
+  shape against the reference and is a prerequisite for the
+  register-resident message buffer rewrite tracked under issue #1.
+
+### Added (tests)
+
+- **`crates/ts3level-cuda/tests/cpu_parity.rs::many_independent_windows_match_cpu`**
+  — verifies 8 independent (counter, level) pairs against the CPU
+  reference instead of only the single overall winner in one window.
+  Off-by-one regressions affecting specific bit positions would slip
+  past the single-winner test but get caught here.
+- **`crates/ts3level-core/src/sha1_block.rs` tests** — four
+  cross-checks against the `sha1` crate for a 64-byte prefix, a
+  128-byte prefix with long suffix, the realistic TS3 input shape,
+  and the empty-message edge case.
 
 ## [0.2.0] — 2026-05-15
 

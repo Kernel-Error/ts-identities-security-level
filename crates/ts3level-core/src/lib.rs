@@ -15,8 +15,10 @@ pub mod error;
 pub mod ini;
 pub mod level;
 pub mod pubkey;
+pub mod sha1_block;
 pub mod writer;
 
 pub use error::{Error, Result};
 pub use ini::IdentityFile;
 pub use level::{compute_level, level_of_hash};
+pub use sha1_block::{sha1_block, SHA1_INIT};

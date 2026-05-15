@@ -17,6 +17,7 @@ use cudarc::nvrtc::Ptx;
 use std::io::Write;
 use std::sync::Arc;
 use tracing::debug;
+use ts3level_core::sha1_block::{sha1_block, SHA1_INIT};
 use ts3level_engine::{DeviceInfo, EngineError, HashEngine, LaunchParams, LaunchResult};
 
 mod cache;
@@ -178,9 +179,30 @@ impl HashEngine for CudaEngine {
         let n_per_thread = params.n_counters.div_ceil(total_threads as u64).max(1);
         let actual_hashes = total_threads as u64 * n_per_thread;
 
+        // Precompute the SHA-1 state after every complete 64-byte block
+        // of the pubkey prefix. The kernel only needs to process the
+        // tail (pubkey remainder + counter + padding) per attempt.
+        // For the typical 108-char TS3 pubkey this folds one block out
+        // of every three into a single host-side hash per launch.
+        let pubkey_bytes = params.pubkey_b64.as_bytes();
+        let prefix_blocks = pubkey_bytes.len() / 64;
+        let prefix_len = prefix_blocks * 64;
+        let mut midstate = SHA1_INIT;
+        for i in 0..prefix_blocks {
+            let mut block = [0u8; 64];
+            block.copy_from_slice(&pubkey_bytes[i * 64..(i + 1) * 64]);
+            sha1_block(&mut midstate, &block);
+        }
+        let pubkey_tail = &pubkey_bytes[prefix_len..];
+        let prefix_bit_len = (prefix_len as u64) * 8;
+
         let pubkey_dev = state
             .stream
-            .memcpy_stod(params.pubkey_b64.as_bytes())
+            .memcpy_stod(pubkey_tail)
+            .map_err(map_driver_err)?;
+        let midstate_dev = state
+            .stream
+            .memcpy_stod(&midstate)
             .map_err(map_driver_err)?;
         // Two separate device slots so the level field can't be
         // corrupted by counter values ≥ 2^56 (which the previous packed
@@ -199,12 +221,14 @@ impl HashEngine for CudaEngine {
             shared_mem_bytes: 0,
         };
 
-        let pubkey_len: u32 = params.pubkey_b64.len() as u32;
+        let pubkey_tail_len: u32 = pubkey_tail.len() as u32;
         let current_best_level: u32 = params.current_best_level as u32;
 
         let mut launch = state.stream.launch_builder(&state.func);
         launch.arg(&pubkey_dev);
-        launch.arg(&pubkey_len);
+        launch.arg(&pubkey_tail_len);
+        launch.arg(&prefix_bit_len);
+        launch.arg(&midstate_dev);
         launch.arg(&params.start_counter);
         launch.arg(&n_per_thread);
         launch.arg(&current_best_level);

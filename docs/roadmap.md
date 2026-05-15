@@ -14,18 +14,30 @@ and caches the result in `$XDG_CACHE_HOME/ts3level/tuning.json`. CLI
 gains `--retune` to ignore the cache. Measured +18 % on the RTX
 4060 Ti (2.4 → 2.85 GH/s).
 
-## B — Kernel-level optimization (big win, ~1-2 days)
+## B — Kernel-level optimization
 
-> **Concrete starting point** added to issue #1 after the v0.2 release:
-> port [hashcat's SHA-1 OpenCL kernel](https://github.com/hashcat/hashcat/blob/master/OpenCL/inc_hash_sha1.cl)
-> (MIT-licensed, ~7 years of tuning) into CUDA instead of hand-writing
-> the optimizations from scratch. landave's `TeamSpeakHasher` already
-> reuses the OpenCL form; thissepic's fork ports it into CUDA. Both
-> confirm the technique works for our exact problem shape.
+> **C-2a (done):** hashcat-derived round macros, `LOP3.LUT`-friendly
+> Ch/Maj, `__funnelshift_l` rotates. Performance-flat on Ada
+> (nvcc already lowers the textbook expressions well), but normalises
+> the inner-loop shape for the next two tranches.
+>
+> **C-2c (done):** host-side midstate precompute. The host SHA-1s the
+> constant pubkey prefix once per launch; the kernel only processes
+> the tail. Combined with the smaller resulting stack frame and a
+> volatile-read fast path on the device-side `g_best_level` slot,
+> sustained hashrate on the 4060 Ti went from 2.85 to 5.94 GH/s
+> (+108 %). The atomic fast path mattered more than the compute
+> savings — the original kernel was atomic-bound on the from-scratch
+> case (every level≥1 hit serialised on one device slot).
+>
+> **C-2b (remaining):** eliminate the per-thread `msg[]` byte buffer
+> entirely, build the SHA-1 message in u32 registers, and replace
+> `utoa64_be` with an in-place decimal-counter increment that only
+> updates the changed digits. Expected to bring the kernel closer to
+> the ~10 GH/s ceiling on this card.
 
-Where the actual ~5-8× headroom is. Reference: `thissepic/TeamSpeakHasher`
-achieves ~20 GH/s on an RTX 4070 Ti; we sit at ~2.4 GH/s on a 4060 Ti
-with the simple kernel.
+Reference: `thissepic/TeamSpeakHasher` achieves ~20 GH/s on an RTX
+4070 Ti; we currently sit at ~5.94 GH/s on a 4060 Ti.
 
 Items, each independently testable:
 

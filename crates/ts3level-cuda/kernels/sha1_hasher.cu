@@ -15,8 +15,14 @@
 
 #include <stdint.h>
 
-#define MAX_INPUT_BYTES   192
-#define MAX_INPUT_BLOCKS  3      // 192 / 64
+// With host-side midstate precompute, the kernel only processes the
+// pubkey tail (= bytes after the host-folded prefix) plus the counter
+// ASCII and SHA-1 padding/length. For the typical TS3 P-256 base64
+// pubkey of ~108 chars the prefix takes one 64-byte block and the tail
+// fits well inside two SHA-1 blocks. Cap at two blocks (128 bytes) so
+// the per-thread stack frame shrinks accordingly.
+#define MAX_INPUT_BYTES   128
+#define MAX_INPUT_BLOCKS  2      // 128 / 64
 
 // ---- SHA-1 core --------------------------------------------------------
 //
@@ -161,38 +167,55 @@ __device__ __forceinline__ int utoa64_be(uint64_t n, uint8_t* out) {
 // not match `g_best_level` — but the host always CPU-verifies the
 // counter's level before persisting, so the worst case is "wait for the
 // next batch".
+//
+// The host precomputes the SHA-1 state of the constant pubkey prefix
+// (full 64-byte blocks of pubkey bytes) and passes it as `midstate`
+// plus `prefix_bit_len`. The kernel then only processes the tail
+// (pubkey remainder + counter ASCII + padding) per iteration. For
+// the typical 108-char TS3 pubkey this drops one full SHA-1 block out
+// of three per attempt.
 
-extern "C" __global__ void sha1_hasher(const uint8_t* __restrict__ pubkey,
-                                       uint32_t pubkey_len,
+extern "C" __global__ void sha1_hasher(const uint8_t* __restrict__ pubkey_tail,
+                                       uint32_t pubkey_tail_len,
+                                       uint64_t prefix_bit_len,
+                                       const uint32_t* __restrict__ midstate,
                                        uint64_t start_counter,
                                        uint64_t n_per_thread,
                                        uint32_t current_best_level,
                                        unsigned int* g_best_level,
                                        unsigned long long* g_best_counter)
 {
-    // Defense-in-depth bound check. The host (CudaEngine::launch) already
-    // refuses pubkeys longer than 110 bytes, but if the host invariant
-    // ever drifts, prevent an out-of-bounds write into `msg[]` below.
-    if (pubkey_len + /*max counter*/ 20 + /*0x80*/ 1 + /*length*/ 8 > MAX_INPUT_BYTES) {
+    // Defense-in-depth bound check. With midstate, msg[] only holds the
+    // tail bytes — pubkey remainder + up to 20 counter digits + 9 bytes
+    // of SHA-1 padding/length. The host enforces this upstream.
+    if (pubkey_tail_len + /*max counter*/ 20 + /*0x80*/ 1 + /*length*/ 8 > MAX_INPUT_BYTES) {
         return;
     }
 
     const uint64_t tid = (uint64_t)blockIdx.x * blockDim.x + threadIdx.x;
     const uint64_t base = start_counter + tid * n_per_thread;
 
-    // Local message buffer; reused per attempt.
+    // Cache the midstate in registers — read once per thread instead of
+    // per iteration. msg[] still lives in thread-local memory; that is
+    // the next optimisation tranche (Phase C-2b).
+    const uint32_t h0_init = midstate[0];
+    const uint32_t h1_init = midstate[1];
+    const uint32_t h2_init = midstate[2];
+    const uint32_t h3_init = midstate[3];
+    const uint32_t h4_init = midstate[4];
+
     uint8_t msg[MAX_INPUT_BYTES];
 
-    // Copy the pubkey prefix once — constant across the inner loop.
-    for (uint32_t i = 0; i < pubkey_len; i++) {
-        msg[i] = pubkey[i];
+    // Copy the pubkey tail (constant across the inner loop).
+    for (uint32_t i = 0; i < pubkey_tail_len; i++) {
+        msg[i] = pubkey_tail[i];
     }
 
     for (uint64_t i = 0; i < n_per_thread; i++) {
         const uint64_t counter = base + i;
 
-        const int counter_len = utoa64_be(counter, msg + pubkey_len);
-        const int total = (int)pubkey_len + counter_len;
+        const int counter_len = utoa64_be(counter, msg + pubkey_tail_len);
+        const int total = (int)pubkey_tail_len + counter_len;
 
         // SHA-1 padding.
         msg[total] = 0x80;
@@ -201,8 +224,9 @@ extern "C" __global__ void sha1_hasher(const uint8_t* __restrict__ pubkey,
         for (int j = total + 1; j < padded - 8; j++) {
             msg[j] = 0;
         }
-        // 64-bit BE length in bits.
-        const uint64_t bit_len = (uint64_t)total * 8;
+        // 64-bit BE length in bits: full message length includes the
+        // bytes the host already folded into the midstate.
+        const uint64_t bit_len = prefix_bit_len + (uint64_t)total * 8;
         msg[padded - 8] = (uint8_t)(bit_len >> 56);
         msg[padded - 7] = (uint8_t)(bit_len >> 48);
         msg[padded - 6] = (uint8_t)(bit_len >> 40);
@@ -212,21 +236,28 @@ extern "C" __global__ void sha1_hasher(const uint8_t* __restrict__ pubkey,
         msg[padded - 2] = (uint8_t)(bit_len >> 8);
         msg[padded - 1] = (uint8_t)(bit_len);
 
-        uint32_t h[5] = {
-            0x67452301u, 0xEFCDAB89u, 0x98BADCFEu, 0x10325476u, 0xC3D2E1F0u,
-        };
+        uint32_t h[5] = { h0_init, h1_init, h2_init, h3_init, h4_init };
         for (int b = 0; b < blocks; b++) {
             sha1_block(h, msg + b * 64);
         }
 
         const uint32_t level = digest_level(h);
         if (level > current_best_level) {
-            // Claim the new best level. If we win the race, publish our
-            // counter. The race window between the two atomics is small
-            // and the host re-verifies via CPU before persisting.
-            unsigned int prev_level = atomicMax(g_best_level, level);
-            if (level > prev_level) {
-                atomicExch(g_best_counter, (unsigned long long)counter);
+            // Two-stage filter: the kernel-argument `current_best_level`
+            // is captured at launch time. As the run progresses other
+            // threads in this grid may have already pushed
+            // `g_best_level` much higher; a plain volatile read is good
+            // enough to filter the bulk of late-arriving matches before
+            // they reach the serialising atomicMax. Without this, every
+            // level≥1 hit (~50 % of iterations on a from-scratch run)
+            // serialised on a single device slot and the kernel was
+            // atomic-bound rather than compute-bound.
+            const uint32_t observed_best = *(volatile unsigned int*)g_best_level;
+            if (level > observed_best) {
+                unsigned int prev_level = atomicMax(g_best_level, level);
+                if (level > prev_level) {
+                    atomicExch(g_best_counter, (unsigned long long)counter);
+                }
             }
         }
     }
