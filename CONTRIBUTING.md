@@ -48,6 +48,28 @@ locally — the host-runner CI cannot exercise the GPU side:
 cargo test -p ts3level-cuda --release
 ```
 
+## Issue labels
+
+Issues are sorted with the labels below. Combine them — e.g., a kernel
+correctness defect is `bug` + `performance`; a translation typo is
+`enhancement` + `i18n` (or `bug` + `i18n` if a string is actually
+broken).
+
+| Label | Meaning |
+|---|---|
+| `bug` | A real defect — wrong output, missing safety, broken edge case. The code review surfaced eleven of these (issues #12–#22). |
+| `enhancement` | New feature or improvement. |
+| `documentation` | Doc-only change (README, `docs/*`, code comments). |
+| `security` | Security-relevant correctness or hardening. Usually combined with `bug`. |
+| `performance` | Hashrate / kernel / GPU efficiency. |
+| `i18n` | Translations and localization (`po/`, gettext flow, locale handling). |
+| `tests` | Test coverage gaps or missing fixtures. |
+| `good first issue` | Small, well-scoped, friendly entry point. Start here if it's your first contribution. |
+| `help wanted` | Larger pieces where outside help would be welcome (kernel optimization, OpenCL backend, multi-GPU, GUI tests). |
+
+The standard GitHub labels (`duplicate`, `invalid`, `question`,
+`wontfix`) are used too but don't need explanation.
+
 ## What's in scope vs out
 
 **In scope:**
