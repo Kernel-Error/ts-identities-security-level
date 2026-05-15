@@ -1,0 +1,12 @@
+[Desktop Entry]
+Type=Application
+Name=TS3 Identity Level
+GenericName=Identity Level Booster
+Comment=Raise the security level of a TeamSpeak 3 identity on a GPU
+Exec=ts3level-gui
+Icon=de.kernel_error.Ts3Level
+Categories=Utility;Security;
+Terminal=false
+StartupNotify=true
+StartupWMClass=de.kernel_error.Ts3Level
+Keywords=TeamSpeak;identity;ECDSA;SHA1;GPU;CUDA;

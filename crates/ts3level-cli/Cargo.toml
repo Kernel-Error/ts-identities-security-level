@@ -1,0 +1,32 @@
+[package]
+name        = "ts3level-cli"
+version.workspace        = true
+edition.workspace        = true
+rust-version.workspace   = true
+license.workspace        = true
+authors.workspace        = true
+repository.workspace     = true
+homepage.workspace       = true
+description = "Headless CLI for raising the security level of a TeamSpeak 3 identity on a GPU."
+
+[[bin]]
+name = "ts3level"
+path = "src/main.rs"
+
+[dependencies]
+ts3level-core   = { path = "../ts3level-core" }
+ts3level-engine = { path = "../ts3level-engine" }
+ts3level-cuda   = { path = "../ts3level-cuda" }
+clap            = { version = "4.5", features = ["derive"] }
+indicatif       = "0.17"
+anyhow          = { workspace = true }
+tracing         = { workspace = true }
+tracing-subscriber = { workspace = true }
+gettext-rs      = { version = "0.7", features = ["gettext-system"] }
+ctrlc           = "3.4"
+
+[dev-dependencies]
+assert_cmd = "2.0"
+predicates = "3.1"
+tempfile   = { workspace = true }
+base64     = { workspace = true }

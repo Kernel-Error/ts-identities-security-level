@@ -1,0 +1,14 @@
+# English source — gettext falls back to msgid when msgstr is empty, so
+# this file is only useful when we want to override regional spellings.
+# Empty translations here mean "use the source string as-is".
+msgid ""
+msgstr ""
+"Project-Id-Version: ts3level 0.1.0\n"
+"Report-Msgid-Bugs-To: kernel-error@kernel-error.com\n"
+"POT-Creation-Date: 2026-05-15 09:00+0000\n"
+"PO-Revision-Date: 2026-05-15 09:00+0000\n"
+"Language: en\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"

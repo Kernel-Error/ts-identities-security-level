@@ -1,0 +1,12 @@
+/target
+Cargo.lock.bak
+*.swp
+*.swo
+*~
+.idea/
+.vscode/
+*.po~
+*.gmo
+*.mo
+build-dir/
+.flatpak-builder/

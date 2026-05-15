@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<gresources>
+  <gresource prefix="/de/kernel_error/Ts3Level">
+    <file preprocess="xml-stripblanks" compressed="true">main_window.ui</file>
+    <file alias="icons/scalable/apps/de.kernel_error.Ts3Level.svg"
+          compressed="true">../icons/hicolor/scalable/apps/de.kernel_error.Ts3Level.svg</file>
+  </gresource>
+</gresources>

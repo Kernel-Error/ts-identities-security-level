@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>de.kernel_error.Ts3Level</id>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>MIT</project_license>
+  <name>TS3 Identity Level</name>
+  <summary>Raise the security level of a TeamSpeak 3 identity on a GPU</summary>
+
+  <description>
+    <p>
+      TS3 Identity Level is a small Linux utility that increases the
+      "security level" of a TeamSpeak 3 identity file by running the
+      underlying SHA-1 proof-of-work on a CUDA-capable NVIDIA GPU. Pick
+      your `.ini`, pick a target level (or run forever), and the tool
+      updates the file in place each time it finds a higher level.
+    </p>
+    <p>
+      This program is not affiliated with, endorsed by, or sponsored by
+      TeamSpeak Systems GmbH. "TeamSpeak" is a trademark of TeamSpeak
+      Systems GmbH and is used here for descriptive purposes only.
+    </p>
+  </description>
+
+  <launchable type="desktop-id">de.kernel_error.Ts3Level.desktop</launchable>
+
+  <url type="homepage">https://www.kernel-error.de</url>
+  <url type="bugtracker">https://github.com/kernel-error/ts-identities-security-level/issues</url>
+  <url type="vcs-browser">https://github.com/kernel-error/ts-identities-security-level</url>
+
+  <developer id="de.kernel_error">
+    <name>Sebastian van de Meer</name>
+  </developer>
+
+  <content_rating type="oars-1.1"/>
+
+  <categories>
+    <category>Utility</category>
+    <category>Security</category>
+  </categories>
+
+  <releases>
+    <release version="0.1.0" date="2026-05-15">
+      <description>
+        <p>Initial release. CLI and GTK4/libadwaita GUI. CUDA backend.</p>
+      </description>
+    </release>
+  </releases>
+
+  <provides>
+    <binary>ts3level</binary>
+    <binary>ts3level-gui</binary>
+  </provides>
+</component>

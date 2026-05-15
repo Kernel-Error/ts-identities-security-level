@@ -1,0 +1,242 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: ts3level 0.1.0\n"
+"Report-Msgid-Bugs-To: kernel-error@kernel-error.com\n"
+"POT-Creation-Date: 2026-05-15 09:00+0000\n"
+"PO-Revision-Date: 2026-05-15 09:00+0000\n"
+"Language: es\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+
+msgid "Using device:"
+msgstr "Usando dispositivo:"
+
+msgid "Device index out of range:"
+msgstr "Índice de dispositivo fuera de rango:"
+
+msgid "device(s) available"
+msgstr "dispositivo(s) disponible(s)"
+
+msgid "Starting at level"
+msgstr "Empezando en el nivel"
+
+msgid "endless"
+msgstr "sin límite"
+
+msgid "target"
+msgstr "objetivo"
+
+msgid "level"
+msgstr "nivel"
+
+msgid "counter"
+msgstr "contador"
+
+msgid "rate"
+msgstr "ritmo"
+
+msgid "hashes"
+msgstr "hashes"
+
+msgid "elapsed"
+msgstr "transcurrido"
+
+msgid "new level"
+msgstr "nuevo nivel"
+
+msgid "target reached"
+msgstr "objetivo alcanzado"
+
+msgid "stopped"
+msgstr "detenido"
+
+msgid "error"
+msgstr "error"
+
+msgid "final level"
+msgstr "nivel final"
+
+msgid "No CUDA-capable device found."
+msgstr "No se encontró ningún dispositivo compatible con CUDA."
+
+msgid "Failed to enumerate CUDA devices"
+msgstr "No se pudieron listar los dispositivos CUDA"
+
+msgid "TS3 Identity Level"
+msgstr "Nivel de identidad de TS3"
+
+msgid "Identity"
+msgstr "Identidad"
+
+msgid "Identity file"
+msgstr "Archivo de identidad"
+
+msgid "No file selected"
+msgstr "Ningún archivo seleccionado"
+
+msgid "Choose…"
+msgstr "Elegir…"
+
+msgid "GPU"
+msgstr "GPU"
+
+msgid "CUDA device"
+msgstr "Dispositivo CUDA"
+
+msgid "Target"
+msgstr "Objetivo"
+
+msgid "Endless mode"
+msgstr "Modo continuo"
+
+msgid "Keep running and write the file every time a higher level is found"
+msgstr "Sigue ejecutándose y guarda el archivo cada vez que encuentra un nivel mayor"
+
+msgid "Target level"
+msgstr "Nivel objetivo"
+
+msgid "Start"
+msgstr "Iniciar"
+
+msgid "Stop"
+msgstr "Detener"
+
+msgid "Progress"
+msgstr "Progreso"
+
+msgid "Current level"
+msgstr "Nivel actual"
+
+msgid "Current counter"
+msgstr "Contador actual"
+
+msgid "Hashrate"
+msgstr "Tasa de hashes"
+
+msgid "Status"
+msgstr "Estado"
+
+msgid "Idle"
+msgstr "Inactivo"
+
+msgid "No CUDA device found"
+msgstr "No se encontró dispositivo CUDA"
+
+msgid "Driver error"
+msgstr "Error del controlador"
+
+msgid "TeamSpeak 3 identity (*.ini)"
+msgstr "Identidad de TeamSpeak 3 (*.ini)"
+
+msgid "Pick a TeamSpeak 3 identity"
+msgstr "Elegir una identidad de TeamSpeak 3"
+
+msgid "Pick an identity file first"
+msgstr "Elige primero un archivo de identidad"
+
+msgid "No device selected"
+msgstr "Ningún dispositivo seleccionado"
+
+msgid "Running…"
+msgstr "Ejecutando…"
+
+msgid "Stopping…"
+msgstr "Deteniendo…"
+
+msgid "New best level:"
+msgstr "Nuevo mejor nivel:"
+
+msgid "Target reached"
+msgstr "Objetivo alcanzado"
+
+msgid "Stopped"
+msgstr "Detenido"
+
+msgid "Error"
+msgstr "Error"
+
+msgid "ETA"
+msgstr "ETA"
+
+msgid "Main menu"
+msgstr "Menú principal"
+
+msgid "About TS3 Identity Level"
+msgstr "Acerca de TS3 Identity Level"
+
+msgid "Identity details"
+msgstr "Detalles de la identidad"
+
+msgid "Nickname"
+msgstr "Apodo"
+
+msgid "Local ID"
+msgstr "ID local"
+
+msgid "Fingerprint"
+msgstr "Huella digital"
+
+msgid "Public key"
+msgstr "Clave pública"
+
+msgid "Click to reveal"
+msgstr "Pulsa para mostrar"
+
+msgid "ETA to next level"
+msgstr "Tiempo hasta el próximo nivel"
+
+msgid "ETA to target"
+msgstr "Tiempo hasta el objetivo"
+
+msgid "Cannot read identity"
+msgstr "No se puede leer la identidad"
+
+msgid "Raise the security level of a TeamSpeak 3 identity on a GPU.\nNot affiliated with TeamSpeak Systems GmbH."
+msgstr "Eleva el nivel de seguridad de una identidad de TeamSpeak 3 usando la GPU.\nSin afiliación con TeamSpeak Systems GmbH."
+
+msgid "GPU stats"
+msgstr "Estadísticas de GPU"
+
+msgid "Utilization"
+msgstr "Uso"
+
+msgid "VRAM"
+msgstr "VRAM"
+
+msgid "Temperature"
+msgstr "Temperatura"
+
+msgid "Power"
+msgstr "Consumo"
+
+msgid "GPU utilization, last 60 s"
+msgstr "Uso de la GPU, últimos 60 s"
+
+msgid "TS3 Identity Level computes the SHA-1 proof-of-work that determines a TeamSpeak 3 identity's security level — only much faster than the official client, by running on your GPU.\n\nThe tool reads the .ini file you export from TeamSpeak 3, finds a counter value whose SHA-1 of (public key ‖ counter) has more leading zero bits, and writes the new file atomically. A one-shot backup of the original is kept next to it.\n\nNot affiliated with TeamSpeak Systems GmbH. The 'TeamSpeak' name is used here for descriptive purposes only."
+msgstr "TS3 Identity Level calcula la prueba de trabajo SHA-1 que determina el nivel de seguridad de una identidad de TeamSpeak 3 — pero mucho más rápido que el cliente oficial, al ejecutarse en tu GPU.\n\nLa herramienta lee el archivo .ini que exportas desde TeamSpeak 3, busca un contador cuyo SHA-1 de (clave pública ‖ contador) tenga más bits cero al inicio y reescribe el archivo de forma atómica. Mantiene una copia de seguridad única del original junto al archivo.\n\nSin afiliación con TeamSpeak Systems GmbH. El nombre «TeamSpeak» se usa aquí solo con fines descriptivos."
+
+msgid "Source code"
+msgstr "Código fuente"
+
+msgid "Usage guide"
+msgstr "Guía de uso"
+
+msgid "Algorithm specification"
+msgstr "Especificación del algoritmo"
+
+msgid "Algorithm references"
+msgstr "Referencias del algoritmo"
+
+msgid "Runtime libraries"
+msgstr "Bibliotecas utilizadas"
+
+msgid "translator-credits"
+msgstr "Sebastian van de Meer <kernel-error@kernel-error.com>"
+
+msgid "note: target"
+msgstr "aviso: objetivo"
+
+msgid "raising to"
+msgstr "se eleva a"

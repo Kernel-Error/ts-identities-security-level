@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
+  <!--
+    Original artwork. Two stylized chevrons over a key — meant to evoke
+    "raising the level" of an identity key. No TeamSpeak iconography.
+  -->
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#2b5278"/>
+      <stop offset="1" stop-color="#1a324a"/>
+    </linearGradient>
+  </defs>
+  <rect x="4" y="4" width="120" height="120" rx="20" fill="url(#bg)"/>
+  <!-- Upward chevrons -->
+  <polyline points="32,80 64,52 96,80" fill="none" stroke="#7cd6ff" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
+  <polyline points="32,100 64,72 96,100" fill="none" stroke="#7cd6ff" stroke-width="8" stroke-linecap="round" stroke-linejoin="round" opacity="0.55"/>
+  <!-- Key glyph -->
+  <circle cx="64" cy="36" r="10" fill="none" stroke="#ffffff" stroke-width="4"/>
+  <line x1="64" y1="46" x2="64" y2="60" stroke="#ffffff" stroke-width="4" stroke-linecap="round"/>
+  <line x1="60" y1="55" x2="68" y2="55" stroke="#ffffff" stroke-width="4" stroke-linecap="round"/>
+</svg>

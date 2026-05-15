@@ -1,0 +1,25 @@
+[package]
+name        = "ts3level-cuda"
+version.workspace        = true
+edition.workspace        = true
+rust-version.workspace   = true
+license.workspace        = true
+authors.workspace        = true
+repository.workspace     = true
+homepage.workspace       = true
+description = "CUDA backend for ts3level: SHA-1 brute-force kernels for TS3 identity security level."
+
+[dependencies]
+ts3level-core   = { path = "../ts3level-core" }
+ts3level-engine = { path = "../ts3level-engine" }
+cudarc          = { version = "0.16", default-features = false, features = ["cuda-12000", "driver", "std", "dynamic-loading"] }
+tempfile        = { workspace = true }
+thiserror       = { workspace = true }
+tracing         = { workspace = true }
+
+[build-dependencies]
+anyhow = { workspace = true }
+
+[dev-dependencies]
+sha1 = { workspace = true }
+hex  = "0.4"

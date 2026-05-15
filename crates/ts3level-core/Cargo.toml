@@ -1,0 +1,21 @@
+[package]
+name        = "ts3level-core"
+version.workspace        = true
+edition.workspace        = true
+rust-version.workspace   = true
+license.workspace        = true
+authors.workspace        = true
+repository.workspace     = true
+homepage.workspace       = true
+description = "TeamSpeak 3 identity parser, de-obfuscator, level computation, and atomic file writer."
+
+[dependencies]
+thiserror = { workspace = true }
+sha1      = { workspace = true }
+base64    = { workspace = true }
+tempfile  = { workspace = true }
+rustix    = { workspace = true }
+tracing   = { workspace = true }
+
+[dev-dependencies]
+hex = "0.4"

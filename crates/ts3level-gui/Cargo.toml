@@ -1,0 +1,30 @@
+[package]
+name        = "ts3level-gui"
+version.workspace        = true
+edition.workspace        = true
+rust-version.workspace   = true
+license.workspace        = true
+authors.workspace        = true
+repository.workspace     = true
+homepage.workspace       = true
+description = "GTK4 + libadwaita GUI for raising the security level of a TeamSpeak 3 identity on a GPU."
+
+[[bin]]
+name = "ts3level-gui"
+path = "src/main.rs"
+
+[dependencies]
+ts3level-core   = { path = "../ts3level-core" }
+ts3level-engine = { path = "../ts3level-engine" }
+ts3level-cuda   = { path = "../ts3level-cuda" }
+gtk             = { package = "gtk4", version = "0.9", features = ["v4_12"] }
+adw             = { package = "libadwaita", version = "0.7", features = ["v1_5"] }
+glib            = "0.20"
+async-channel   = "2.3"
+anyhow          = { workspace = true }
+tracing         = { workspace = true }
+tracing-subscriber = { workspace = true }
+gettext-rs      = { version = "0.7", features = ["gettext-system"] }
+
+[build-dependencies]
+glib-build-tools = "0.20"

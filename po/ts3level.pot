@@ -1,0 +1,257 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: ts3level 0.1.0\n"
+"Report-Msgid-Bugs-To: kernel-error@kernel-error.com\n"
+"POT-Creation-Date: 2026-05-15 09:00+0000\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"Language: \n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+# --- CLI -------------------------------------------------------------------
+
+msgid "Using device:"
+msgstr ""
+
+msgid "Device index out of range:"
+msgstr ""
+
+msgid "device(s) available"
+msgstr ""
+
+msgid "Starting at level"
+msgstr ""
+
+msgid "endless"
+msgstr ""
+
+msgid "target"
+msgstr ""
+
+msgid "level"
+msgstr ""
+
+msgid "counter"
+msgstr ""
+
+msgid "rate"
+msgstr ""
+
+msgid "hashes"
+msgstr ""
+
+msgid "elapsed"
+msgstr ""
+
+msgid "new level"
+msgstr ""
+
+msgid "target reached"
+msgstr ""
+
+msgid "stopped"
+msgstr ""
+
+msgid "error"
+msgstr ""
+
+msgid "final level"
+msgstr ""
+
+msgid "No CUDA-capable device found."
+msgstr ""
+
+msgid "Failed to enumerate CUDA devices"
+msgstr ""
+
+# --- GUI -------------------------------------------------------------------
+
+msgid "TS3 Identity Level"
+msgstr ""
+
+msgid "Identity"
+msgstr ""
+
+msgid "Identity file"
+msgstr ""
+
+msgid "No file selected"
+msgstr ""
+
+msgid "Choose…"
+msgstr ""
+
+msgid "GPU"
+msgstr ""
+
+msgid "CUDA device"
+msgstr ""
+
+msgid "Target"
+msgstr ""
+
+msgid "Endless mode"
+msgstr ""
+
+msgid "Keep running and write the file every time a higher level is found"
+msgstr ""
+
+msgid "Target level"
+msgstr ""
+
+msgid "Start"
+msgstr ""
+
+msgid "Stop"
+msgstr ""
+
+msgid "Progress"
+msgstr ""
+
+msgid "Current level"
+msgstr ""
+
+msgid "Current counter"
+msgstr ""
+
+msgid "Hashrate"
+msgstr ""
+
+msgid "Status"
+msgstr ""
+
+msgid "Idle"
+msgstr ""
+
+msgid "No CUDA device found"
+msgstr ""
+
+msgid "Driver error"
+msgstr ""
+
+msgid "TeamSpeak 3 identity (*.ini)"
+msgstr ""
+
+msgid "Pick a TeamSpeak 3 identity"
+msgstr ""
+
+msgid "Pick an identity file first"
+msgstr ""
+
+msgid "No device selected"
+msgstr ""
+
+msgid "Running…"
+msgstr ""
+
+msgid "Stopping…"
+msgstr ""
+
+msgid "New best level:"
+msgstr ""
+
+msgid "Target reached"
+msgstr ""
+
+msgid "Stopped"
+msgstr ""
+
+msgid "Error"
+msgstr ""
+
+# --- v0.2 additions ---
+
+msgid "ETA"
+msgstr ""
+
+msgid "Main menu"
+msgstr ""
+
+msgid "About TS3 Identity Level"
+msgstr ""
+
+msgid "Identity details"
+msgstr ""
+
+msgid "Nickname"
+msgstr ""
+
+msgid "Local ID"
+msgstr ""
+
+msgid "Fingerprint"
+msgstr ""
+
+msgid "Public key"
+msgstr ""
+
+msgid "Click to reveal"
+msgstr ""
+
+msgid "ETA to next level"
+msgstr ""
+
+msgid "ETA to target"
+msgstr ""
+
+msgid "Cannot read identity"
+msgstr ""
+
+msgid "Raise the security level of a TeamSpeak 3 identity on a GPU.\nNot affiliated with TeamSpeak Systems GmbH."
+msgstr ""
+
+# GPU stats panel
+
+msgid "GPU stats"
+msgstr ""
+
+msgid "Utilization"
+msgstr ""
+
+msgid "VRAM"
+msgstr ""
+
+msgid "Temperature"
+msgstr ""
+
+msgid "Power"
+msgstr ""
+
+msgid "GPU utilization, last 60 s"
+msgstr ""
+
+# About window — extended details
+
+msgid "TS3 Identity Level computes the SHA-1 proof-of-work that determines a TeamSpeak 3 identity's security level — only much faster than the official client, by running on your GPU.\n\nThe tool reads the .ini file you export from TeamSpeak 3, finds a counter value whose SHA-1 of (public key ‖ counter) has more leading zero bits, and writes the new file atomically. A one-shot backup of the original is kept next to it.\n\nNot affiliated with TeamSpeak Systems GmbH. The 'TeamSpeak' name is used here for descriptive purposes only."
+msgstr ""
+
+msgid "Source code"
+msgstr ""
+
+msgid "Usage guide"
+msgstr ""
+
+msgid "Algorithm specification"
+msgstr ""
+
+msgid "Algorithm references"
+msgstr ""
+
+msgid "Runtime libraries"
+msgstr ""
+
+# Per-language translator credit shown on the Credits page of the
+# About window. Replace with your name and email.
+msgid "translator-credits"
+msgstr ""
+
+# CLI: identity summary + target auto-bump
+
+msgid "note: target"
+msgstr ""
+
+msgid "raising to"
+msgstr ""

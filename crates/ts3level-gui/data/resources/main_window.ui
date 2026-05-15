@@ -1,0 +1,401 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<interface>
+  <requires lib="gtk" version="4.12"/>
+  <requires lib="libadwaita" version="1.5"/>
+  <menu id="primary_menu">
+    <section>
+      <item>
+        <attribute name="label" translatable="yes">About TS3 Identity Level</attribute>
+        <attribute name="action">app.about</attribute>
+      </item>
+    </section>
+  </menu>
+  <template class="Ts3LevelMainWindow" parent="AdwApplicationWindow">
+    <property name="title" translatable="yes">TS3 Identity Level</property>
+    <property name="default-width">1000</property>
+    <property name="default-height">920</property>
+    <child>
+      <object class="AdwToolbarView">
+        <child type="top">
+          <object class="AdwHeaderBar">
+            <child type="end">
+              <object class="GtkMenuButton">
+                <property name="icon-name">open-menu-symbolic</property>
+                <property name="menu-model">primary_menu</property>
+                <property name="tooltip-text" translatable="yes">Main menu</property>
+              </object>
+            </child>
+          </object>
+        </child>
+        <property name="content">
+          <object class="GtkScrolledWindow">
+            <property name="hscrollbar-policy">automatic</property>
+            <property name="child">
+              <object class="GtkBox">
+                <property name="orientation">horizontal</property>
+                <property name="spacing">18</property>
+                <property name="margin-top">18</property>
+                <property name="margin-bottom">18</property>
+                <property name="margin-start">18</property>
+                <property name="margin-end">18</property>
+                <property name="valign">start</property>
+                <property name="hexpand">true</property>
+                <!-- Left column: inputs -->
+                <child>
+                  <object class="GtkBox">
+                    <property name="orientation">vertical</property>
+                    <property name="spacing">18</property>
+                    <property name="hexpand">true</property>
+                    <property name="width-request">440</property>
+                    <child>
+                      <object class="AdwPreferencesGroup">
+                        <property name="title" translatable="yes">Identity</property>
+                        <child>
+                          <object class="AdwActionRow" id="identity_row">
+                            <property name="title" translatable="yes">Identity file</property>
+                            <property name="subtitle" translatable="yes">No file selected</property>
+                            <child>
+                              <object class="GtkButton" id="pick_file_button">
+                                <property name="label" translatable="yes">Choose…</property>
+                                <property name="valign">center</property>
+                              </object>
+                            </child>
+                          </object>
+                        </child>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="AdwPreferencesGroup" id="details_group">
+                        <property name="title" translatable="yes">Identity details</property>
+                        <child>
+                          <object class="AdwActionRow" id="nickname_row">
+                            <property name="title" translatable="yes">Nickname</property>
+                            <child>
+                              <object class="GtkLabel" id="nickname_label">
+                                <property name="label">—</property>
+                                <property name="valign">center</property>
+                                <property name="selectable">true</property>
+                              </object>
+                            </child>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="AdwActionRow" id="local_id_row">
+                            <property name="title" translatable="yes">Local ID</property>
+                            <child>
+                              <object class="GtkLabel" id="local_id_label">
+                                <property name="label">—</property>
+                                <property name="valign">center</property>
+                                <property name="selectable">true</property>
+                              </object>
+                            </child>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="AdwActionRow">
+                            <property name="title" translatable="yes">Current level</property>
+                            <child>
+                              <object class="GtkLabel" id="current_level_label">
+                                <property name="label">—</property>
+                                <property name="valign">center</property>
+                                <style>
+                                  <class name="title-3"/>
+                                </style>
+                              </object>
+                            </child>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="AdwActionRow">
+                            <property name="title" translatable="yes">Current counter</property>
+                            <child>
+                              <object class="GtkLabel" id="current_counter_label">
+                                <property name="label">—</property>
+                                <property name="valign">center</property>
+                                <property name="selectable">true</property>
+                              </object>
+                            </child>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="AdwActionRow">
+                            <property name="title" translatable="yes">Fingerprint</property>
+                            <child>
+                              <object class="GtkLabel" id="fingerprint_label">
+                                <property name="label">—</property>
+                                <property name="valign">center</property>
+                                <property name="selectable">true</property>
+                                <style>
+                                  <class name="monospace"/>
+                                </style>
+                              </object>
+                            </child>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="AdwExpanderRow" id="pubkey_expander">
+                            <property name="title" translatable="yes">Public key</property>
+                            <property name="subtitle" translatable="yes">Click to reveal</property>
+                            <child>
+                              <object class="AdwActionRow">
+                                <child>
+                                  <object class="GtkLabel" id="pubkey_label">
+                                    <property name="label">—</property>
+                                    <property name="wrap">true</property>
+                                    <property name="wrap-mode">char</property>
+                                    <property name="selectable">true</property>
+                                    <property name="margin-top">6</property>
+                                    <property name="margin-bottom">6</property>
+                                    <property name="margin-start">6</property>
+                                    <property name="margin-end">6</property>
+                                    <style>
+                                      <class name="monospace"/>
+                                      <class name="caption"/>
+                                    </style>
+                                  </object>
+                                </child>
+                              </object>
+                            </child>
+                          </object>
+                        </child>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="AdwPreferencesGroup">
+                        <property name="title" translatable="yes">GPU</property>
+                        <child>
+                          <object class="AdwComboRow" id="device_combo">
+                            <property name="title" translatable="yes">CUDA device</property>
+                          </object>
+                        </child>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="AdwPreferencesGroup">
+                        <property name="title" translatable="yes">Target</property>
+                        <child>
+                          <object class="AdwSwitchRow" id="endless_switch">
+                            <property name="title" translatable="yes">Endless mode</property>
+                            <property name="subtitle" translatable="yes">Keep running and write the file every time a higher level is found</property>
+                            <property name="active">false</property>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="AdwSpinRow" id="target_spin">
+                            <property name="title" translatable="yes">Target level</property>
+                            <property name="adjustment">
+                              <object class="GtkAdjustment">
+                                <property name="lower">1</property>
+                                <property name="upper">100</property>
+                                <property name="step-increment">1</property>
+                                <property name="page-increment">5</property>
+                                <property name="value">40</property>
+                              </object>
+                            </property>
+                          </object>
+                        </child>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkBox">
+                        <property name="spacing">12</property>
+                        <property name="homogeneous">true</property>
+                        <child>
+                          <object class="GtkButton" id="start_button">
+                            <property name="label" translatable="yes">Start</property>
+                            <style>
+                              <class name="suggested-action"/>
+                              <class name="pill"/>
+                            </style>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkButton" id="stop_button">
+                            <property name="label" translatable="yes">Stop</property>
+                            <property name="sensitive">false</property>
+                            <style>
+                              <class name="destructive-action"/>
+                              <class name="pill"/>
+                            </style>
+                          </object>
+                        </child>
+                      </object>
+                    </child>
+                  </object>
+                </child>
+                <!-- Right column: live progress + GPU telemetry -->
+                <child>
+                  <object class="GtkBox">
+                    <property name="orientation">vertical</property>
+                    <property name="spacing">18</property>
+                    <property name="hexpand">true</property>
+                    <property name="width-request">440</property>
+                    <child>
+                      <object class="AdwPreferencesGroup">
+                        <property name="title" translatable="yes">Progress</property>
+                        <child>
+                          <object class="AdwActionRow">
+                            <property name="title" translatable="yes">Current level</property>
+                            <child>
+                              <object class="GtkLabel" id="level_label">
+                                <property name="label">—</property>
+                                <property name="valign">center</property>
+                                <style>
+                                  <class name="title-3"/>
+                                </style>
+                              </object>
+                            </child>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="AdwActionRow">
+                            <property name="title" translatable="yes">Current counter</property>
+                            <child>
+                              <object class="GtkLabel" id="counter_label">
+                                <property name="label">—</property>
+                                <property name="valign">center</property>
+                                <property name="selectable">true</property>
+                              </object>
+                            </child>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="AdwActionRow">
+                            <property name="title" translatable="yes">Hashrate</property>
+                            <child>
+                              <object class="GtkLabel" id="hashrate_label">
+                                <property name="label">—</property>
+                                <property name="valign">center</property>
+                              </object>
+                            </child>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="AdwActionRow">
+                            <property name="title" translatable="yes">ETA to next level</property>
+                            <child>
+                              <object class="GtkLabel" id="eta_next_label">
+                                <property name="label">—</property>
+                                <property name="valign">center</property>
+                              </object>
+                            </child>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="AdwActionRow" id="eta_target_row">
+                            <property name="title" translatable="yes">ETA to target</property>
+                            <child>
+                              <object class="GtkLabel" id="eta_target_label">
+                                <property name="label">—</property>
+                                <property name="valign">center</property>
+                              </object>
+                            </child>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="AdwActionRow">
+                            <property name="title" translatable="yes">Status</property>
+                            <child>
+                              <object class="GtkLabel" id="status_label">
+                                <property name="label" translatable="yes">Idle</property>
+                                <property name="valign">center</property>
+                                <property name="wrap">true</property>
+                                <property name="xalign">1</property>
+                              </object>
+                            </child>
+                          </object>
+                        </child>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="AdwPreferencesGroup" id="gpu_stats_group">
+                        <property name="title" translatable="yes">GPU stats</property>
+                        <child>
+                          <object class="AdwActionRow">
+                            <property name="title" translatable="yes">Utilization</property>
+                            <child>
+                              <object class="GtkLabel" id="util_label">
+                                <property name="label">—</property>
+                                <property name="valign">center</property>
+                              </object>
+                            </child>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="AdwActionRow">
+                            <property name="title" translatable="yes">VRAM</property>
+                            <child>
+                              <object class="GtkLabel" id="vram_label">
+                                <property name="label">—</property>
+                                <property name="valign">center</property>
+                              </object>
+                            </child>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="AdwActionRow">
+                            <property name="title" translatable="yes">Temperature</property>
+                            <child>
+                              <object class="GtkLabel" id="temp_label">
+                                <property name="label">—</property>
+                                <property name="valign">center</property>
+                              </object>
+                            </child>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="AdwActionRow">
+                            <property name="title" translatable="yes">Power</property>
+                            <child>
+                              <object class="GtkLabel" id="power_label">
+                                <property name="label">—</property>
+                                <property name="valign">center</property>
+                              </object>
+                            </child>
+                          </object>
+                        </child>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkFrame">
+                        <style>
+                          <class name="card"/>
+                        </style>
+                        <child>
+                          <object class="GtkBox">
+                            <property name="orientation">vertical</property>
+                            <property name="spacing">4</property>
+                            <property name="margin-top">10</property>
+                            <property name="margin-bottom">10</property>
+                            <property name="margin-start">12</property>
+                            <property name="margin-end">12</property>
+                            <child>
+                              <object class="GtkLabel">
+                                <property name="label" translatable="yes">GPU utilization, last 60 s</property>
+                                <property name="halign">start</property>
+                                <style>
+                                  <class name="caption"/>
+                                  <class name="dim-label"/>
+                                </style>
+                              </object>
+                            </child>
+                            <child>
+                              <object class="GtkDrawingArea" id="util_graph">
+                                <property name="height-request">110</property>
+                                <property name="hexpand">true</property>
+                              </object>
+                            </child>
+                          </object>
+                        </child>
+                      </object>
+                    </child>
+                  </object>
+                </child>
+              </object>
+            </property>
+          </object>
+        </property>
+      </object>
+    </child>
+  </template>
+</interface>

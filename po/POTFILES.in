@@ -1,0 +1,5 @@
+# List of source files that contain translatable strings.
+crates/ts3level-cli/src/main.rs
+crates/ts3level-gui/src/window.rs
+crates/ts3level-gui/src/worker.rs
+crates/ts3level-gui/data/resources/main_window.ui
