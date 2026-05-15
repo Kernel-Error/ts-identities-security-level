@@ -16,6 +16,13 @@ gains `--retune` to ignore the cache. Measured +18 % on the RTX
 
 ## B — Kernel-level optimization (big win, ~1-2 days)
 
+> **Concrete starting point** added to issue #1 after the v0.2 release:
+> port [hashcat's SHA-1 OpenCL kernel](https://github.com/hashcat/hashcat/blob/master/OpenCL/inc_hash_sha1.cl)
+> (MIT-licensed, ~7 years of tuning) into CUDA instead of hand-writing
+> the optimizations from scratch. landave's `TeamSpeakHasher` already
+> reuses the OpenCL form; thissepic's fork ports it into CUDA. Both
+> confirm the technique works for our exact problem shape.
+
 Where the actual ~5-8× headroom is. Reference: `thissepic/TeamSpeakHasher`
 achieves ~20 GH/s on an RTX 4070 Ti; we sit at ~2.4 GH/s on a 4060 Ti
 with the simple kernel.
