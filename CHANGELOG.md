@@ -6,6 +6,8 @@ project follows [Semantic Versioning](https://semver.org).
 
 ## [Unreleased]
 
+## [0.3.0] — 2026-05-15
+
 ### Performance
 
 - **In-place decimal counter increment.** The kernel no longer
@@ -270,6 +272,7 @@ the official client reports for the same identity, byte-identical.
 - OpenCL/AMD support pending — the `HashEngine` trait makes this a
   drop-in.
 
-[Unreleased]: https://github.com/Kernel-Error/ts-identities-security-level/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/Kernel-Error/ts-identities-security-level/compare/v0.3.0...HEAD
+[0.3.0]: https://github.com/Kernel-Error/ts-identities-security-level/releases/tag/v0.3.0
 [0.2.0]: https://github.com/Kernel-Error/ts-identities-security-level/releases/tag/v0.2.0
 [0.1.0]: https://github.com/Kernel-Error/ts-identities-security-level/releases/tag/v0.1.0

@@ -95,9 +95,9 @@ A precompiled tarball for `x86_64-linux` (glibc ≥ 2.39) is attached to
 each [release](https://github.com/Kernel-Error/ts-identities-security-level/releases):
 
 ```bash
-curl -LO https://github.com/Kernel-Error/ts-identities-security-level/releases/download/v0.2.0/ts3level-v0.2.0-x86_64-linux.tar.gz
-tar -xzf ts3level-v0.2.0-x86_64-linux.tar.gz
-cd ts3level-v0.2.0-x86_64-linux
+curl -LO https://github.com/Kernel-Error/ts-identities-security-level/releases/download/v0.3.0/ts3level-v0.3.0-x86_64-linux.tar.gz
+tar -xzf ts3level-v0.3.0-x86_64-linux.tar.gz
+cd ts3level-v0.3.0-x86_64-linux
 sudo install -m755 bin/ts3level     /usr/local/bin/
 sudo install -m755 bin/ts3level-gui /usr/local/bin/
 sudo cp -r share/locale/*           /usr/share/locale/
