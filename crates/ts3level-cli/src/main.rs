@@ -66,6 +66,13 @@ struct Cli {
     /// NVML is misbehaving on your system.
     #[arg(long = "no-gpu-stats")]
     no_gpu_stats: bool,
+
+    /// Force the launch-geometry auto-tune to re-probe this device,
+    /// ignoring any cached result. The fresh measurement is written
+    /// back to the cache. Use after a driver update or if you suspect
+    /// the cached numbers are stale.
+    #[arg(long = "retune")]
+    retune: bool,
 }
 
 fn main() {
@@ -92,6 +99,7 @@ fn main() {
 
 fn run(cli: &Cli) -> Result<i32> {
     let mut engine = CudaEngine::new();
+    engine.set_force_retune(cli.retune);
 
     if cli.list_devices {
         return list_devices(&engine);

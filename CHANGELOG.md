@@ -107,6 +107,19 @@ project follows [Semantic Versioning](https://semver.org).
   `EIO`, `ENOLCK` and other real OS faults surface as the structured
   `Error::Io { path, source }` variant. Closes #16.
 
+### Performance
+
+- **Auto-tune CUDA launch geometry on first use of each device**. The
+  previous hard-coded `(blocks_per_sm = 32, threads_per_block = 256)`
+  was generic but suboptimal; a short 9-combination probe sweep
+  (`{16, 32, 48} × {128, 256, 512}`) on first `select_device` picks
+  the fastest. Result is cached as JSON in
+  `$XDG_CACHE_HOME/ts3level/tuning.json` (or `~/.cache/ts3level/`)
+  keyed by device name, so subsequent runs skip the probe. CLI gains
+  `--retune` to ignore the cache and re-probe. Measured on the RTX
+  4060 Ti: 2.4 GH/s → 2.85 GH/s (~+18 %). Sweep total: ~3.4 s, well
+  inside the 5 s acceptance budget. Closes #2.
+
 ### Added (tests)
 
 - **Committed algorithm fixture** at `crates/ts3level-core/testdata/

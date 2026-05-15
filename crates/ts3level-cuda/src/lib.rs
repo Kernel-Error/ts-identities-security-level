@@ -19,17 +19,13 @@ use std::sync::Arc;
 use tracing::debug;
 use ts3level_engine::{DeviceInfo, EngineError, HashEngine, LaunchParams, LaunchResult};
 
+mod cache;
 mod enumerate;
+mod tune;
+
+pub use tune::Geometry;
 
 const FATBIN: &[u8] = include_bytes!(env!("TS3LEVEL_FATBIN_PATH"));
-
-/// Number of resident blocks per SM. Tuned empirically — 32 keeps the SHA-1
-/// pipeline well-fed without spilling registers on Ampere/Ada.
-const BLOCKS_PER_SM: u32 = 32;
-
-/// Threads per block. 256 is the standard sweet spot for SHA-1-shaped
-/// kernels (low shared-mem use, plenty of warps).
-const THREADS_PER_BLOCK: u32 = 256;
 
 pub struct CudaEngine {
     bound: Option<BoundState>,
@@ -37,6 +33,12 @@ pub struct CudaEngine {
     /// The CUDA runtime caches the module by name internally — once the
     /// file is loaded we could drop it, but keeping it does no harm.
     fatbin_temp: Option<tempfile::TempPath>,
+    /// When `true`, the next `select_device` skips the persisted tuning
+    /// cache and re-probes from scratch. CLI users opt into this with
+    /// `--retune`; the GUI doesn't expose it (the cache is per-device
+    /// and re-population is silent enough that running once on the new
+    /// hardware is fine).
+    force_retune: bool,
 }
 
 struct BoundState {
@@ -50,6 +52,7 @@ struct BoundState {
     module: Arc<CudaModule>,
     func: CudaFunction,
     mp_count: u32,
+    geometry: Geometry,
 }
 
 impl CudaEngine {
@@ -57,7 +60,15 @@ impl CudaEngine {
         Self {
             bound: None,
             fatbin_temp: None,
+            force_retune: false,
         }
+    }
+
+    /// When set, `select_device` ignores the cache for this run and
+    /// reruns the geometry probe. The freshly-measured result is
+    /// written back to the cache on success.
+    pub fn set_force_retune(&mut self, force: bool) {
+        self.force_retune = force;
     }
 }
 
@@ -117,7 +128,18 @@ impl HashEngine for CudaEngine {
             .attribute(sys::CUdevice_attribute::CU_DEVICE_ATTRIBUTE_MULTIPROCESSOR_COUNT)
             .map_err(map_driver_err)? as u32;
 
-        debug!("Bound to CUDA device {index}, MP count {mp_count}");
+        let device_name = ctx.name().map_err(map_driver_err)?;
+        debug!("Bound to CUDA device {index} ({device_name}), MP count {mp_count}");
+
+        // Auto-tune (or load cached) launch geometry for this device.
+        let geometry = tune::pick_geometry(
+            &ctx,
+            &stream,
+            &func,
+            mp_count,
+            &device_name,
+            self.force_retune,
+        )?;
 
         self.bound = Some(BoundState {
             ctx,
@@ -125,6 +147,7 @@ impl HashEngine for CudaEngine {
             module,
             func,
             mp_count,
+            geometry,
         });
         self.fatbin_temp = Some(path);
         Ok(())
@@ -150,8 +173,8 @@ impl HashEngine for CudaEngine {
             });
         }
 
-        let total_blocks = state.mp_count * BLOCKS_PER_SM;
-        let total_threads = total_blocks * THREADS_PER_BLOCK;
+        let total_blocks = state.mp_count * state.geometry.blocks_per_sm;
+        let total_threads = total_blocks * state.geometry.threads_per_block;
         let n_per_thread = params.n_counters.div_ceil(total_threads as u64).max(1);
         let actual_hashes = total_threads as u64 * n_per_thread;
 
@@ -172,7 +195,7 @@ impl HashEngine for CudaEngine {
 
         let cfg = LaunchConfig {
             grid_dim: (total_blocks, 1, 1),
-            block_dim: (THREADS_PER_BLOCK, 1, 1),
+            block_dim: (state.geometry.threads_per_block, 1, 1),
             shared_mem_bytes: 0,
         };
 
