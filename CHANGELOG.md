@@ -4,6 +4,25 @@ All notable changes to this project are documented here. The format is
 loosely based on [Keep a Changelog](https://keepachangelog.com), the
 project follows [Semantic Versioning](https://semver.org).
 
+## [Unreleased]
+
+### Changed
+
+- **CUDA SHA-1 inner loop rewritten in the shape used by hashcat's
+  `OpenCL/inc_hash_sha1.h`** (MIT-licensed, attribution added to
+  docs/algorithm.md). New `SHA1_STEP` macro plus LOP3-friendly
+  `Ch`/`Maj` forms and `__funnelshift_l` rotates, with the standard
+  5-step register-cycling unroll. No behavioural change — the kernel
+  computes byte-identical SHA-1 to before, verified by a new
+  `many_independent_windows_match_cpu` parity test that checks 8
+  independent (counter, level) pairs against the CPU reference. On the
+  RTX 4060 Ti the hashrate is flat (~2.87 GH/s before and after),
+  because the bottleneck right now is the stack-allocated `msg[]`
+  buffer spilling to local memory, not the SHA-1 round body — the
+  payoff from this rewrite shows up combined with Phase C-2b (register
+  message buffer + in-place counter increment) and C-2c (host-side
+  midstate precompute), tracked under issue #1.
+
 ## [0.2.0] — 2026-05-15
 
 ### Added
@@ -209,5 +228,6 @@ the official client reports for the same identity, byte-identical.
 - OpenCL/AMD support pending — the `HashEngine` trait makes this a
   drop-in.
 
+[Unreleased]: https://github.com/Kernel-Error/ts-identities-security-level/compare/v0.2.0...HEAD
 [0.2.0]: https://github.com/Kernel-Error/ts-identities-security-level/releases/tag/v0.2.0
 [0.1.0]: https://github.com/Kernel-Error/ts-identities-security-level/releases/tag/v0.1.0

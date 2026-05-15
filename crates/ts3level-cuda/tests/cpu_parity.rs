@@ -73,6 +73,64 @@ fn cuda_matches_cpu_for_first_million_counters() {
     }
 }
 
+/// Verify N independent (counter, level) pairs against the CPU
+/// reference by launching N non-overlapping 1 M windows from different
+/// base counters. Catches off-by-one regressions in the SHA-1 round
+/// mapping that would affect specific bit positions and slip past the
+/// single-window winner check above (which only validates one point).
+///
+/// We do *not* walk down level thresholds within one window because the
+/// expected gap between the top level and the second-best in a 1 M
+/// window is at the edge of feasibility — verifying 8 independent
+/// windows is cheaper and gives stricter coverage.
+#[test]
+fn many_independent_windows_match_cpu() {
+    let Some(mut engine) = engine_or_skip() else {
+        return;
+    };
+    const SPAN: u64 = 1_000_000;
+    const WINDOWS: u64 = 8;
+
+    let mut verified = Vec::with_capacity(WINDOWS as usize);
+    for k in 0..WINDOWS {
+        let base = k * SPAN;
+        let params = LaunchParams {
+            pubkey_b64: PUBKEY_B64.to_string(),
+            start_counter: base,
+            n_counters: SPAN,
+            current_best_level: 0,
+        };
+        let r = engine.launch(&params).unwrap();
+        assert!(
+            r.best_level > 0,
+            "window {k} ({base}..{}): no level found, kernel likely broken",
+            base + SPAN,
+        );
+        let cpu = compute_level(PUBKEY_B64, r.best_counter);
+        assert_eq!(
+            cpu, r.best_level,
+            "window {k}: GPU level={} for counter={}, CPU disagrees: CPU={cpu}",
+            r.best_level, r.best_counter,
+        );
+        // The reported counter must lie inside what the kernel actually
+        // swept (which can exceed `n_counters` slightly because launch
+        // geometry rounds up). Anything else means the kernel reported
+        // a stale value from a previous launch or has an indexing bug.
+        let upper = base + r.hashes_performed;
+        assert!(
+            r.best_counter >= base && r.best_counter < upper,
+            "window {k}: reported counter {} outside [{base}, {upper})",
+            r.best_counter,
+        );
+        verified.push((r.best_counter, r.best_level));
+    }
+    println!(
+        "Verified {} independent (counter, level) pairs against CPU: {:?}",
+        verified.len(),
+        verified
+    );
+}
+
 #[test]
 fn cuda_finds_higher_level_when_extending_window() {
     let Some(mut engine) = engine_or_skip() else {

@@ -120,6 +120,10 @@ of the `.ini` file format and observable behavior of the client:
   OpenCL hasher, source of the bit-counting convention.
 - [`ReSpeak/tsdeclarations`](https://github.com/ReSpeak/tsdeclarations) —
   protocol notes including the obfuscation steps.
+- [`hashcat/hashcat`](https://github.com/hashcat/hashcat) — the
+  `OpenCL/inc_hash_sha1.h` round and step macros (MIT-licensed) inform
+  the shape of our CUDA SHA-1 inner loop (LOP3-friendly Ch/Maj forms,
+  funnelshift rotates, the 5-step unrolled register cycle).
 
 This project's Rust implementation was written from those references, not
 copied. No TeamSpeak source code, header, or binary was used or

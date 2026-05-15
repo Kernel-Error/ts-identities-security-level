@@ -19,10 +19,31 @@
 #define MAX_INPUT_BLOCKS  3      // 192 / 64
 
 // ---- SHA-1 core --------------------------------------------------------
+//
+// The round-function macros and the SHA1_STEP form are derived from
+// hashcat's `OpenCL/inc_hash_sha1.h` (MIT-licensed). The textbook
+// expressions for Ch and Maj have been rewritten to the
+// (z ^ (x & (y ^ z))) and ((x & y) | (z & (x ^ y))) forms — both are
+// 3-input boolean functions of one 32-bit output, which nvcc auto-lowers
+// to a single `LOP3.LUT` instruction on sm_50+. 32-bit rotates go
+// through `__funnelshift_l`, a single SASS instruction on sm_70+ and a
+// short emulation on older arches.
 
-__device__ __forceinline__ uint32_t rotl(uint32_t x, uint32_t n) {
-    return (x << n) | (x >> (32 - n));
-}
+#define SHA1_F0(b, c, d)  ((d) ^ ((b) & ((c) ^ (d))))            // Ch
+#define SHA1_F1(b, c, d)  ((b) ^ (c) ^ (d))                       // Parity
+#define SHA1_F2(b, c, d)  (((b) & (c)) | ((d) & ((b) ^ (c))))     // Maj
+
+#define SHA1_K0 0x5A827999u
+#define SHA1_K1 0x6ED9EBA1u
+#define SHA1_K2 0x8F1BBCDCu
+#define SHA1_K3 0xCA62C1D6u
+
+#define SHA1_STEP(f, a, b, c, d, e, w_t, K) do {       \
+    (e) += (K);                                         \
+    (e) += (w_t) + f((b), (c), (d));                    \
+    (e) += __funnelshift_l((a), (a), 5);                \
+    (b)  = __funnelshift_l((b), (b), 30);               \
+} while (0)
 
 // Process a single 64-byte block, updating h[0..5].
 __device__ void sha1_block(uint32_t h[5], const uint8_t block[64]) {
@@ -37,34 +58,48 @@ __device__ void sha1_block(uint32_t h[5], const uint8_t block[64]) {
     }
 #pragma unroll
     for (int i = 16; i < 80; i++) {
-        w[i] = rotl(w[i-3] ^ w[i-8] ^ w[i-14] ^ w[i-16], 1);
+        const uint32_t x = w[i-3] ^ w[i-8] ^ w[i-14] ^ w[i-16];
+        w[i] = __funnelshift_l(x, x, 1);
     }
 
     uint32_t a = h[0], b = h[1], c = h[2], d = h[3], e = h[4];
 
+    // Round 1: f = Ch, K = 0x5A827999. After each step the registers
+    // rotate (e,a,b,c,d) ← (d,e,a,rotl(b,30),c) which is the standard
+    // SHA-1 schedule. We unroll the rotation explicitly into five
+    // SHA1_STEP invocations with cycled operand order, identical to
+    // hashcat's expansion.
 #pragma unroll
-    for (int i = 0; i < 20; i++) {
-        uint32_t f = (b & c) | ((~b) & d);
-        uint32_t t = rotl(a, 5) + f + e + 0x5A827999u + w[i];
-        e = d; d = c; c = rotl(b, 30); b = a; a = t;
+    for (int i = 0; i < 20; i += 5) {
+        SHA1_STEP(SHA1_F0, a, b, c, d, e, w[i + 0], SHA1_K0);
+        SHA1_STEP(SHA1_F0, e, a, b, c, d, w[i + 1], SHA1_K0);
+        SHA1_STEP(SHA1_F0, d, e, a, b, c, w[i + 2], SHA1_K0);
+        SHA1_STEP(SHA1_F0, c, d, e, a, b, w[i + 3], SHA1_K0);
+        SHA1_STEP(SHA1_F0, b, c, d, e, a, w[i + 4], SHA1_K0);
     }
 #pragma unroll
-    for (int i = 20; i < 40; i++) {
-        uint32_t f = b ^ c ^ d;
-        uint32_t t = rotl(a, 5) + f + e + 0x6ED9EBA1u + w[i];
-        e = d; d = c; c = rotl(b, 30); b = a; a = t;
+    for (int i = 20; i < 40; i += 5) {
+        SHA1_STEP(SHA1_F1, a, b, c, d, e, w[i + 0], SHA1_K1);
+        SHA1_STEP(SHA1_F1, e, a, b, c, d, w[i + 1], SHA1_K1);
+        SHA1_STEP(SHA1_F1, d, e, a, b, c, w[i + 2], SHA1_K1);
+        SHA1_STEP(SHA1_F1, c, d, e, a, b, w[i + 3], SHA1_K1);
+        SHA1_STEP(SHA1_F1, b, c, d, e, a, w[i + 4], SHA1_K1);
     }
 #pragma unroll
-    for (int i = 40; i < 60; i++) {
-        uint32_t f = (b & c) | (b & d) | (c & d);
-        uint32_t t = rotl(a, 5) + f + e + 0x8F1BBCDCu + w[i];
-        e = d; d = c; c = rotl(b, 30); b = a; a = t;
+    for (int i = 40; i < 60; i += 5) {
+        SHA1_STEP(SHA1_F2, a, b, c, d, e, w[i + 0], SHA1_K2);
+        SHA1_STEP(SHA1_F2, e, a, b, c, d, w[i + 1], SHA1_K2);
+        SHA1_STEP(SHA1_F2, d, e, a, b, c, w[i + 2], SHA1_K2);
+        SHA1_STEP(SHA1_F2, c, d, e, a, b, w[i + 3], SHA1_K2);
+        SHA1_STEP(SHA1_F2, b, c, d, e, a, w[i + 4], SHA1_K2);
     }
 #pragma unroll
-    for (int i = 60; i < 80; i++) {
-        uint32_t f = b ^ c ^ d;
-        uint32_t t = rotl(a, 5) + f + e + 0xCA62C1D6u + w[i];
-        e = d; d = c; c = rotl(b, 30); b = a; a = t;
+    for (int i = 60; i < 80; i += 5) {
+        SHA1_STEP(SHA1_F1, a, b, c, d, e, w[i + 0], SHA1_K3);
+        SHA1_STEP(SHA1_F1, e, a, b, c, d, w[i + 1], SHA1_K3);
+        SHA1_STEP(SHA1_F1, d, e, a, b, c, w[i + 2], SHA1_K3);
+        SHA1_STEP(SHA1_F1, c, d, e, a, b, w[i + 3], SHA1_K3);
+        SHA1_STEP(SHA1_F1, b, c, d, e, a, w[i + 4], SHA1_K3);
     }
 
     h[0] += a; h[1] += b; h[2] += c; h[3] += d; h[4] += e;
