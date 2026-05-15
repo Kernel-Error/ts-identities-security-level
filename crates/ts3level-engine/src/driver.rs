@@ -4,10 +4,12 @@
 
 use crate::engine::{HashEngine, LaunchParams};
 use crate::progress::{DoneReason, Progress};
+use std::collections::VecDeque;
 use std::path::PathBuf;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::mpsc::Sender;
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
+use std::thread;
 use std::time::Instant;
 use thiserror::Error;
 use ts3level_core::pubkey::KeyPair;
@@ -33,7 +35,7 @@ pub enum DriverError {
 }
 
 pub struct Driver {
-    engine: Box<dyn HashEngine>,
+    engines: Vec<Box<dyn HashEngine>>,
     file_path: PathBuf,
     identity: IdentityFile,
     pubkey_b64: String,
@@ -54,7 +56,7 @@ impl Driver {
     ) -> Result<Self, DriverError> {
         let kp = KeyPair::from_blob_b64(identity.blob_b64())?;
         Ok(Self {
-            engine,
+            engines: vec![engine],
             file_path,
             pubkey_b64: kp.public_key_base64(),
             identity,
@@ -62,6 +64,13 @@ impl Driver {
             stop_flag: Arc::new(AtomicBool::new(false)),
             batch_size: 1 << 24, // 16M counters per batch; tuned later
         })
+    }
+
+    /// Add another already-selected backend worker. Each engine gets an
+    /// interleaved slice of the counter space so multiple devices never try
+    /// the same counter in normal operation.
+    pub fn add_engine(&mut self, engine: Box<dyn HashEngine>) {
+        self.engines.push(engine);
     }
 
     /// Override the requested batch size. Tests use small values; the CLI
@@ -97,30 +106,38 @@ impl Driver {
 
             if let StopMode::Target(t) = self.stop_mode {
                 if best_level >= t {
-                    self.emit_done(&progress, DoneReason::TargetReached, best_level, best_counter);
+                    self.emit_done(
+                        &progress,
+                        DoneReason::TargetReached,
+                        best_level,
+                        best_counter,
+                    );
                     return Ok(());
                 }
             }
 
-            let params = LaunchParams {
-                pubkey_b64: self.pubkey_b64.clone(),
-                start_counter: next_counter,
-                n_counters: self.batch_size,
-                current_best_level: best_level,
-            };
+            let worker_count = self.engines.len().max(1);
+            let launches = plan_launches(next_counter, self.batch_size, worker_count);
 
             let launch_started = Instant::now();
-            let res = self.engine.launch(&params)?;
+            let results =
+                launch_engines(&mut self.engines, &launches, &self.pubkey_b64, best_level)?;
             let launch_elapsed = launch_started.elapsed().as_secs_f64().max(1e-9);
 
-            total_hashes = total_hashes.saturating_add(res.hashes_performed);
-            let instant_rate = res.hashes_performed as f64 / launch_elapsed;
+            let batch_hashes = results
+                .iter()
+                .fold(0u64, |acc, res| acc.saturating_add(res.hashes_performed));
+            total_hashes = total_hashes.saturating_add(batch_hashes);
+            let instant_rate = batch_hashes as f64 / launch_elapsed;
             hashrate_ema = Some(match hashrate_ema {
                 None => instant_rate,
                 Some(prev) => 0.8 * prev + 0.2 * instant_rate,
             });
 
-            if res.best_level > best_level {
+            for res in &results {
+                if res.best_level <= best_level {
+                    continue;
+                }
                 // Verify with the CPU reference before persisting — cheap
                 // insurance against a buggy kernel.
                 let verified =
@@ -159,7 +176,7 @@ impl Driver {
                 eta_target_secs: eta_target,
             });
 
-            next_counter = next_counter.saturating_add(res.hashes_performed.max(1));
+            next_counter = next_counter.saturating_add(batch_hashes.max(1));
             // Saturated to u64::MAX is improbable but possible for very
             // long-running endless mode; stop sanely instead of looping.
             if next_counter == u64::MAX {
@@ -182,6 +199,78 @@ impl Driver {
             final_counter,
         });
     }
+}
+
+fn plan_launches(start_counter: u64, batch_size: u64, worker_count: usize) -> Vec<LaunchParams> {
+    let workers = worker_count.max(1);
+    let base = batch_size / workers as u64;
+    let remainder = batch_size % workers as u64;
+    let mut next = start_counter;
+
+    (0..workers)
+        .map(|idx| {
+            let len = base + u64::from((idx as u64) < remainder);
+            let params = LaunchParams {
+                pubkey_b64: String::new(),
+                start_counter: next,
+                n_counters: len,
+                current_best_level: 0,
+            };
+            next = next.saturating_add(len);
+            params
+        })
+        .collect()
+}
+
+fn launch_engines(
+    engines: &mut [Box<dyn HashEngine>],
+    launches: &[LaunchParams],
+    pubkey_b64: &str,
+    current_best_level: u8,
+) -> Result<Vec<crate::LaunchResult>, DriverError> {
+    let mut queued = VecDeque::from(
+        launches
+            .iter()
+            .cloned()
+            .filter(|launch| launch.n_counters > 0)
+            .collect::<Vec<_>>(),
+    );
+    let queue = Arc::new(Mutex::new(VecDeque::new()));
+    std::mem::swap(&mut *queue.lock().unwrap(), &mut queued);
+    let results = Arc::new(Mutex::new(Vec::new()));
+    let pubkey_b64 = Arc::new(pubkey_b64.to_owned());
+
+    thread::scope(|scope| {
+        let handles = engines
+            .iter_mut()
+            .map(|engine| {
+                let queue = Arc::clone(&queue);
+                let results = Arc::clone(&results);
+                let pubkey_b64 = Arc::clone(&pubkey_b64);
+                scope.spawn(move || -> Result<(), DriverError> {
+                    loop {
+                        let mut params = match queue.lock().unwrap().pop_front() {
+                            Some(params) => params,
+                            None => return Ok(()),
+                        };
+                        params.pubkey_b64 = (*pubkey_b64).clone();
+                        params.current_best_level = current_best_level;
+                        let res = engine.launch(&params)?;
+                        results.lock().unwrap().push(res);
+                    }
+                })
+            })
+            .collect::<Vec<_>>();
+
+        for handle in handles {
+            handle.join().unwrap()?;
+        }
+        Ok::<(), DriverError>(())
+    })?;
+
+    let mut results = results.lock().unwrap().clone();
+    results.sort_by_key(|res| res.best_level);
+    Ok(results)
 }
 
 /// Expected wall-clock time to find a counter of level `≥ L` given a
@@ -231,8 +320,7 @@ mod tests {
 
     #[test]
     fn eta_calculation_target_mode() {
-        let (next, target) =
-            compute_eta(1_000_000_000.0, 20, StopMode::Target(40));
+        let (next, target) = compute_eta(1_000_000_000.0, 20, StopMode::Target(40));
         // 2^21 / 1e9
         assert!(next.unwrap() > 0.0 && next.unwrap() < 0.01);
         // 2^40 / 1e9 = 1099 s
@@ -307,11 +395,20 @@ mod tests {
         driver.run(tx).unwrap();
 
         let events: Vec<_> = rx.iter().collect();
-        let new_best = events.iter().find(|e| matches!(e, Progress::NewBest { .. }));
-        assert!(new_best.is_some(), "expected at least one NewBest, got {events:?}");
+        let new_best = events
+            .iter()
+            .find(|e| matches!(e, Progress::NewBest { .. }));
+        assert!(
+            new_best.is_some(),
+            "expected at least one NewBest, got {events:?}"
+        );
 
         let done = events.iter().rev().find_map(|e| match e {
-            Progress::Done { reason, final_level, .. } => Some((reason, final_level)),
+            Progress::Done {
+                reason,
+                final_level,
+                ..
+            } => Some((reason, final_level)),
             _ => None,
         });
         let (reason, final_level) = done.expect("no Done event");
@@ -320,7 +417,46 @@ mod tests {
 
         // File on disk reflects the new counter.
         let after = std::fs::read_to_string(&path).unwrap();
-        assert!(!after.contains("identity=\"0V"), "counter not updated: {after}");
+        assert!(
+            !after.contains("identity=\"0V"),
+            "counter not updated: {after}"
+        );
+    }
+
+    #[test]
+    fn splits_batches_into_disjoint_counter_ranges() {
+        let launches = plan_launches(10, 10, 3);
+        let ranges: Vec<_> = launches
+            .iter()
+            .map(|p| (p.start_counter, p.n_counters))
+            .collect();
+        assert_eq!(ranges, vec![(10, 4), (14, 3), (17, 3)]);
+    }
+
+    #[test]
+    fn multi_engine_driver_aggregates_progress() {
+        let (_dir, path) = make_test_ini(0);
+        let identity = IdentityFile::parse(&std::fs::read(&path).unwrap()).unwrap();
+        let mut first = Box::new(MockEngine::new());
+        first.select_device(0).unwrap();
+        let mut second = Box::new(MockEngine::new());
+        second.select_device(0).unwrap();
+
+        let mut driver = Driver::new(first, path.clone(), identity, StopMode::Target(2)).unwrap();
+        driver.add_engine(second);
+        driver.set_batch_size(200);
+
+        let (tx, rx) = mpsc::channel();
+        driver.run(tx).unwrap();
+        let events: Vec<_> = rx.iter().collect();
+        assert!(events.iter().any(|e| matches!(e, Progress::NewBest { .. })));
+        assert!(events.iter().any(|e| matches!(
+            e,
+            Progress::Tick {
+                hashrate_hps,
+                ..
+            } if *hashrate_hps > 0.0
+        )));
     }
 
     #[test]
@@ -329,8 +465,7 @@ mod tests {
         let identity = IdentityFile::parse(&std::fs::read(&path).unwrap()).unwrap();
         let mut engine = Box::new(MockEngine::new());
         engine.select_device(0).unwrap();
-        let mut driver =
-            Driver::new(engine, path.clone(), identity, StopMode::Endless).unwrap();
+        let mut driver = Driver::new(engine, path.clone(), identity, StopMode::Endless).unwrap();
         driver.set_batch_size(10);
         let stop = driver.stop_handle();
         stop.store(true, Ordering::SeqCst);
@@ -358,6 +493,9 @@ mod tests {
         let bak = ts3level_core::writer::backup_path(&path);
         assert!(bak.exists(), "backup not created");
         let bak_content = std::fs::read_to_string(&bak).unwrap();
-        assert!(bak_content.contains("identity=\"0V"), "backup not pristine: {bak_content}");
+        assert!(
+            bak_content.contains("identity=\"0V"),
+            "backup not pristine: {bak_content}"
+        );
     }
 }
