@@ -4,6 +4,37 @@ All notable changes to this project are documented here. The format is
 loosely based on [Keep a Changelog](https://keepachangelog.com), the
 project follows [Semantic Versioning](https://semver.org).
 
+## [Unreleased]
+
+### Added
+
+- **GitHub Actions CI** (`.github/workflows/ci.yml`) — three jobs run on
+  every push to `main` and every pull request: `cargo fmt --check`,
+  `cargo clippy --workspace --all-targets --release` with `-D warnings`,
+  and the full test suite. CUDA Toolkit is installed via
+  `Jimver/cuda-toolkit` so the kernel build succeeds on the runner.
+  Cargo cache shared across runs via `Swatinem/rust-cache`.
+- **Pull-request template** (`.github/PULL_REQUEST_TEMPLATE.md`) with a
+  test-plan checklist and a prominent warning against attaching real
+  `.ini` identity files.
+- **`CONTRIBUTING.md`** with the minimal contributor guide: tool
+  versions, the commands CI runs, where the docs live.
+
+### Changed
+
+- **Minimum Supported Rust Version bumped from 1.75 to 1.82** — the
+  test fixtures already use `std::iter::repeat_n`, which is stable since
+  1.82. Released stable Rust is now 1.86 / 1.87, so the new floor is
+  well below current.
+
+### Fixed (clippy hygiene)
+
+- Array-based char matchers in `crates/ts3level-core/src/ini.rs`
+  (replaces three closure-style trim predicates).
+- Removed an unnecessary `u32 → u32` cast in
+  `crates/ts3level-gui/src/window.rs`.
+- Workspace-wide `cargo fmt` pass.
+
 ## [0.1.0] — 2026-05-15
 
 First public release.

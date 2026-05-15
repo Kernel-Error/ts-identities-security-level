@@ -8,8 +8,20 @@ use ts3level_engine::{HashEngine, LaunchParams};
 const PUBKEY_B64: &str =
     "MEwDAgcAAgEgAiEA5jUbcc+RXAJzVKLpyEnoq/Otht1JBeCdRgRJYYBuOmoCIQDwBoRP+rkICZHbAGD9XYpV9bm08yPYGT4LehKXmlYZJg==";
 
+/// True if there's a CUDA device file we can hand to cudarc. Without
+/// this guard, cudarc panics on `enumerate()` when `libcuda.so.1` isn't
+/// installed (typical on a GitHub Actions runner with CUDA Toolkit but
+/// no driver). Match the pattern used in the CLI smoke tests.
+fn cuda_available() -> bool {
+    std::path::Path::new("/dev/nvidiactl").exists()
+}
+
 #[test]
 fn measure_hashrate() {
+    if !cuda_available() {
+        eprintln!("no CUDA driver; skipping hashrate bench");
+        return;
+    }
     let mut engine = CudaEngine::new();
     let devs = match engine.enumerate() {
         Ok(v) if !v.is_empty() => v,

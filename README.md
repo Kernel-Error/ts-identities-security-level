@@ -1,5 +1,9 @@
 # ts-identities-security-level
 
+[![CI](https://github.com/Kernel-Error/ts-identities-security-level/actions/workflows/ci.yml/badge.svg)](https://github.com/Kernel-Error/ts-identities-security-level/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![Latest release](https://img.shields.io/github/v/release/Kernel-Error/ts-identities-security-level)](https://github.com/Kernel-Error/ts-identities-security-level/releases)
+
 GPU-accelerated tool for Linux that raises the **security level** of a
 TeamSpeak 3 identity file. Point it at your `.ini`, pick a GPU, set a target
 level (or let it run forever), and the tool updates the file in place each
@@ -118,6 +122,15 @@ Versioned releases ship on
 [GitHub](https://github.com/Kernel-Error/ts-identities-security-level/releases)
 with prebuilt `x86_64-linux` tarballs (binaries + locale files).
 Per-version notes live in [CHANGELOG.md](CHANGELOG.md).
+
+## Contributing
+
+Open work items are in
+[GitHub Issues](https://github.com/Kernel-Error/ts-identities-security-level/issues);
+the `good first issue` label is a friendly entry point. The full
+contributor guide lives in [CONTRIBUTING.md](CONTRIBUTING.md). Every
+push and pull request runs through CI (`cargo fmt`, `cargo clippy
+-D warnings`, full test suite) before merge.
 
 ## License
 

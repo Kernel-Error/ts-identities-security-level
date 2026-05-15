@@ -8,7 +8,8 @@ requires the NVIDIA driver. This document covers building from source.
 - Linux x86_64 (other arches untested; should work on aarch64 once the
   CUDA Toolkit supports it on the target distro).
 - NVIDIA driver ≥ 525 with `libcuda.so.1` (required to *run*).
-- Rust ≥ 1.75 — install via `rustup` or your distro's `rustup` package.
+- Rust ≥ 1.82 (workspace MSRV) — install via `rustup` or your distro's
+  `rustup` package.
 - CUDA Toolkit ≥ 12.0 (provides `nvcc`, needed to *build* the kernel).
 - GTK 4.12+ and libadwaita 1.5+ development headers (for `ts3level-gui`).
 - `gettext` (for `xgettext` and `msgfmt`).

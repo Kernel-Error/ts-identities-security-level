@@ -11,7 +11,19 @@ use ts3level_engine::{HashEngine, LaunchParams};
 const PUBKEY_B64: &str =
     "MEwDAgcAAgEgAiEA5jUbcc+RXAJzVKLpyEnoq/Otht1JBeCdRgRJYYBuOmoCIQDwBoRP+rkICZHbAGD9XYpV9bm08yPYGT4LehKXmlYZJg==";
 
+/// True iff there's an NVIDIA driver-installed device file we can hand
+/// to cudarc. cudarc panics when it can't dynamically load
+/// `libcuda.so.1` (typical on a CI runner with CUDA Toolkit but no
+/// driver), so we must skip *before* the first `enumerate()` call.
+fn cuda_available() -> bool {
+    std::path::Path::new("/dev/nvidiactl").exists()
+}
+
 fn engine_or_skip() -> Option<CudaEngine> {
+    if !cuda_available() {
+        eprintln!("note: no CUDA driver — skipping parity test");
+        return None;
+    }
     let mut e = CudaEngine::new();
     match e.enumerate() {
         Ok(v) if !v.is_empty() => {
