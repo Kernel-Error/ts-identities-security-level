@@ -126,3 +126,36 @@ fn french_localized_strings_appear() {
         "French strings missing in stderr:\n{stderr}"
     );
 }
+
+#[test]
+fn dutch_localized_strings_appear() {
+    if !cuda_available() {
+        eprintln!("no CUDA; skipping");
+        return;
+    }
+    if !locale_installed("nl_NL") {
+        eprintln!("nl_NL locale not installed; skipping");
+        return;
+    }
+    let ld = locale_dir();
+    if !ld.join("nl/LC_MESSAGES/ts3level.mo").exists() {
+        eprintln!("locale not compiled; run `cargo xtask msgfmt` first — skipping");
+        return;
+    }
+    let (_dir, path) = synthetic_ini(0);
+    let assert = Command::cargo_bin("ts3level")
+        .unwrap()
+        .env("LANG", "nl_NL.UTF-8")
+        .env("LANGUAGE", "nl")
+        .env("TS3LEVEL_LOCALEDIR", &ld)
+        .args(["--target", "10", "--no-gpu-stats"])
+        .arg(&path)
+        .timeout(std::time::Duration::from_secs(60))
+        .assert()
+        .success();
+    let stderr = String::from_utf8_lossy(&assert.get_output().stderr).into_owned();
+    assert!(
+        stderr.contains("Apparaat gebruikt") || stderr.contains("Startend op niveau"),
+        "Dutch strings missing in stderr:\n{stderr}"
+    );
+}

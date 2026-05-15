@@ -24,7 +24,7 @@ pub enum PreflightError {
     #[error("identity file not found: {path:?}")]
     NotFound { path: PathBuf },
 
-    #[error("identity file is not readable: {path:?} (your uid: {our_uid}, file: {file_uid}:{file_gid} mode {mode:o})")]
+    #[error("identity file is not readable: {path:?} (your uid: {our_uid}, file: {file_uid}:{file_gid} mode {mode:04o})")]
     NotReadable {
         path: PathBuf,
         our_uid: u32,
@@ -32,6 +32,11 @@ pub enum PreflightError {
         file_gid: u32,
         mode: u32,
     },
+
+    /// Like `NotReadable`, but `stat` itself was refused — so we don't
+    /// know the file's ownership or mode and refuse to invent them.
+    #[error("identity file metadata could not be read: {path:?} (your uid: {our_uid}; the file is not stat-able, check directory traversal permissions)")]
+    NotReadableNoMetadata { path: PathBuf, our_uid: u32 },
 
     #[error("identity file is not writable: {path:?}")]
     NotWritable { path: PathBuf },
@@ -92,12 +97,9 @@ fn check_file_and_parse(path: &Path) -> Result<IdentityFile, PreflightError> {
         std::io::ErrorKind::NotFound => PreflightError::NotFound {
             path: path.to_owned(),
         },
-        std::io::ErrorKind::PermissionDenied => PreflightError::NotReadable {
+        std::io::ErrorKind::PermissionDenied => PreflightError::NotReadableNoMetadata {
             path: path.to_owned(),
             our_uid: nix_uid(),
-            file_uid: 0,
-            file_gid: 0,
-            mode: 0,
         },
         _ => PreflightError::InvalidFile {
             path: path.to_owned(),

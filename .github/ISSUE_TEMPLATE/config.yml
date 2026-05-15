@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Read the docs first
+    url: https://github.com/Kernel-Error/ts-identities-security-level/tree/main/docs
+    about: Installation, usage, build, compatibility, and exit codes are all documented.
+  - name: Roadmap and planned work
+    url: https://github.com/Kernel-Error/ts-identities-security-level/blob/main/docs/roadmap.md
+    about: Performance work, OpenCL backend, multi-GPU, and packaging items are tracked here.

@@ -225,7 +225,7 @@ msgstr ""
 
 # About window — extended details
 
-msgid "TS3 Identity Level computes the SHA-1 proof-of-work that determines a TeamSpeak 3 identity's security level — only much faster than the official client, by running on your GPU.\n\nThe tool reads the .ini file you export from TeamSpeak 3, finds a counter value whose SHA-1 of (public key ‖ counter) has more leading zero bits, and writes the new file atomically. A one-shot backup of the original is kept next to it.\n\nNot affiliated with TeamSpeak Systems GmbH. The 'TeamSpeak' name is used here for descriptive purposes only."
+msgid "TS3 Identity Level computes the SHA-1 proof-of-work that determines a TeamSpeak 3 identity's security level — only much faster than the official client, by running on your GPU.\n\nThe tool reads the .ini file you export from TeamSpeak 3, finds a counter value whose SHA-1 of (public key ‖ counter) has more leading zero bits, and writes the new file atomically. A one-shot backup of the original is kept next to it.\n\nNot affiliated with, endorsed by, or sponsored by TeamSpeak Systems GmbH. 'TeamSpeak' is a trademark of TeamSpeak Systems GmbH and is used here only descriptively."
 msgstr ""
 
 msgid "Source code"

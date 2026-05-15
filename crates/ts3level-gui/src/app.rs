@@ -49,8 +49,9 @@ value whose SHA-1 of (public key ‖ counter) has more leading zero bits, \
 and writes the new file atomically. A one-shot backup of the original is \
 kept next to it.
 
-Not affiliated with TeamSpeak Systems GmbH. The 'TeamSpeak' name is used \
-here for descriptive purposes only.",
+Not affiliated with, endorsed by, or sponsored by TeamSpeak Systems GmbH. \
+'TeamSpeak' is a trademark of TeamSpeak Systems GmbH and is used here \
+only descriptively.",
         ))
         .translator_credits(tr("translator-credits"))
         .build();

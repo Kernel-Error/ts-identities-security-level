@@ -20,6 +20,20 @@ Two binaries from one workspace:
 
 NVIDIA only for now (CUDA). OpenCL/AMD support is on the roadmap.
 
+## Safety and scope
+
+This tool is intended only for identity files you own and exported
+yourself. An exported TeamSpeak 3 identity `.ini` contains private key
+material — **treat it like an SSH private key**:
+
+- do not upload it anywhere
+- do not paste it into issues, chat, or screenshots
+- do not run this tool on files you do not own
+
+The tool works **offline**. It does not contact TeamSpeak servers, does
+not modify the TeamSpeak client, and does not bypass server permissions
+or access controls.
+
 ## Disclaimer
 
 This project is not affiliated with, endorsed by, or sponsored by TeamSpeak

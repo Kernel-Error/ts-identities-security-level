@@ -11,6 +11,8 @@ driver JIT-compiles for any newer card:
 
 | Generation        | Example cards                          | Compute cap | Status            |
 |-------------------|----------------------------------------|-------------|-------------------|
+| Maxwell           | GTX 9xx, Titan X Maxwell               | `sm_52`     | native SASS       |
+| Pascal            | GTX 1060/1070/1080, Titan X Pascal     | `sm_61`     | native SASS       |
 | Volta             | Titan V, Tesla V100                    | `sm_70`     | native SASS       |
 | Turing            | RTX 2060/2070/2080, GTX 16xx, Tesla T4 | `sm_75`     | native SASS       |
 | Ampere (DC)       | A100                                   | `sm_80`     | native SASS       |
@@ -21,17 +23,13 @@ driver JIT-compiles for any newer card:
 
 **Not currently supported by the prebuilt binary:**
 
-- **Pascal** (`sm_60`/`sm_61`) — GTX 1050/1060/1070/1080, Titan X Pascal,
-  Tesla P100
-- **Maxwell and older** (`sm_5x`, `sm_3x`) — GTX 9xx, GTX 7xx, …
+- **Kepler and older** (`sm_3x` and earlier) — too old; CUDA Toolkit
+  12.0 dropped support, and SHA-1 throughput on these wouldn't be
+  meaningful for high target levels anyway.
 
-These cards would either fail at module load with *"no kernel image
-available for execution on the device"* or be slow enough that SHA-1
-brute-forcing is impractical anyway.
-
-To add Pascal support, append `("compute_61", "sm_61")` to the `TARGETS`
-array in [`crates/ts3level-cuda/build.rs`](../crates/ts3level-cuda/build.rs)
-and rebuild.
+The older the architecture, the lower the hashrate — SHA-1 on Maxwell
+or Pascal is a fraction of what Ada or Hopper delivers. The cards work,
+just slowly.
 
 ## NVIDIA driver
 
@@ -90,6 +88,6 @@ beyond glibc.
 | Target system                                       | What to do                              |
 |-----------------------------------------------------|-----------------------------------------|
 | Recent desktop, modern card (RTX 20-series or newer)| Copy the binary, run it.                |
-| Older card (GTX 10-series, Pascal)                  | Patch `build.rs` (add `sm_61`), rebuild.|
+| Older card (GTX 9-series / Kepler-era)              | Build from source if the CUDA Toolkit on your distro still supports it. |
 | Older distro (Ubuntu 22.04, Debian 12, RHEL 9)      | Build from source on the target.        |
 | Headless server                                     | Use `ts3level` (CLI); no GUI deps needed.|

@@ -303,6 +303,7 @@ fn report_preflight_error(e: PreflightError) -> i32 {
         PreflightError::DevicePermission { .. } => exit::DEVICE_PERMISSION,
         PreflightError::NotFound { .. } => exit::FILE_NOT_FOUND,
         PreflightError::NotReadable { .. }
+        | PreflightError::NotReadableNoMetadata { .. }
         | PreflightError::NotWritable { .. }
         | PreflightError::ParentNotWritable { .. } => exit::FILE_PERMISSION,
         PreflightError::Locked { .. } => exit::FILE_LOCKED,

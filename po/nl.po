@@ -3,8 +3,8 @@ msgstr ""
 "Project-Id-Version: ts3level 0.1.0\n"
 "Report-Msgid-Bugs-To: kernel-error@kernel-error.com\n"
 "POT-Creation-Date: 2026-05-15 09:00+0000\n"
-"PO-Revision-Date: 2026-05-15 09:00+0000\n"
-"Language: de\n"
+"PO-Revision-Date: 2026-05-15 12:00+0000\n"
+"Language: nl\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
@@ -13,93 +13,93 @@ msgstr ""
 # --- CLI ---
 
 msgid "Using device:"
-msgstr "Benutze Gerät:"
+msgstr "Apparaat gebruikt:"
 
 msgid "Device index out of range:"
-msgstr "Geräteindex außerhalb des gültigen Bereichs:"
+msgstr "Apparaatindex buiten bereik:"
 
 msgid "device(s) available"
-msgstr "Gerät(e) verfügbar"
+msgstr "apparaat/apparaten beschikbaar"
 
 msgid "Starting at level"
-msgstr "Starte bei Level"
+msgstr "Startend op niveau"
 
 msgid "endless"
-msgstr "endlos"
+msgstr "oneindig"
 
 msgid "target"
-msgstr "Ziel"
+msgstr "doel"
 
 msgid "level"
-msgstr "Level"
+msgstr "niveau"
 
 msgid "counter"
-msgstr "Counter"
+msgstr "teller"
 
 msgid "rate"
-msgstr "Rate"
+msgstr "snelheid"
 
 msgid "hashes"
-msgstr "Hashes"
+msgstr "hashes"
 
 msgid "elapsed"
-msgstr "vergangen"
+msgstr "verstreken"
 
 msgid "new level"
-msgstr "neues Level"
+msgstr "nieuw niveau"
 
 msgid "target reached"
-msgstr "Ziel erreicht"
+msgstr "doel bereikt"
 
 msgid "stopped"
-msgstr "gestoppt"
+msgstr "gestopt"
 
 msgid "error"
-msgstr "Fehler"
+msgstr "fout"
 
 msgid "final level"
-msgstr "Endlevel"
+msgstr "eindniveau"
 
 msgid "No CUDA-capable device found."
-msgstr "Keine CUDA-fähige Grafikkarte gefunden."
+msgstr "Geen CUDA-compatibel apparaat gevonden."
 
 msgid "Failed to enumerate CUDA devices"
-msgstr "CUDA-Geräte konnten nicht aufgelistet werden"
+msgstr "Kon CUDA-apparaten niet opsommen"
 
 # --- GUI ---
 
 msgid "TS3 Identity Level"
-msgstr "TS3-Identity-Level"
+msgstr "TS3 Identity Level"
 
 msgid "Identity"
-msgstr "Identität"
+msgstr "Identiteit"
 
 msgid "Identity file"
-msgstr "Identitätsdatei"
+msgstr "Identiteitsbestand"
 
 msgid "No file selected"
-msgstr "Keine Datei ausgewählt"
+msgstr "Geen bestand geselecteerd"
 
 msgid "Choose…"
-msgstr "Auswählen…"
+msgstr "Kies…"
 
 msgid "GPU"
 msgstr "GPU"
 
 msgid "CUDA device"
-msgstr "CUDA-Gerät"
+msgstr "CUDA-apparaat"
 
 msgid "Target"
-msgstr "Ziel"
+msgstr "Doel"
 
 msgid "Endless mode"
-msgstr "Endlosmodus"
+msgstr "Eindeloze modus"
 
 msgid "Keep running and write the file every time a higher level is found"
-msgstr "Läuft weiter und speichert die Datei sobald ein höheres Level gefunden wurde"
+msgstr "Blijft draaien en schrijft het bestand telkens als een hoger niveau gevonden wordt"
 
 msgid "Target level"
-msgstr "Ziellevel"
+msgstr "Doelniveau"
 
 msgid "Start"
 msgstr "Start"
@@ -108,13 +108,13 @@ msgid "Stop"
 msgstr "Stop"
 
 msgid "Progress"
-msgstr "Fortschritt"
+msgstr "Voortgang"
 
 msgid "Current level"
-msgstr "Aktuelles Level"
+msgstr "Huidig niveau"
 
 msgid "Current counter"
-msgstr "Aktueller Counter"
+msgstr "Huidige teller"
 
 msgid "Hashrate"
 msgstr "Hashrate"
@@ -123,124 +123,124 @@ msgid "Status"
 msgstr "Status"
 
 msgid "Idle"
-msgstr "Bereit"
+msgstr "Inactief"
 
 msgid "No CUDA device found"
-msgstr "Kein CUDA-Gerät gefunden"
+msgstr "Geen CUDA-apparaat gevonden"
 
 msgid "Driver error"
-msgstr "Treiber-Fehler"
+msgstr "Driver-fout"
 
 msgid "TeamSpeak 3 identity (*.ini)"
-msgstr "TeamSpeak-3-Identität (*.ini)"
+msgstr "TeamSpeak 3-identiteit (*.ini)"
 
 msgid "Pick a TeamSpeak 3 identity"
-msgstr "TeamSpeak-3-Identität auswählen"
+msgstr "Kies een TeamSpeak 3-identiteit"
 
 msgid "Pick an identity file first"
-msgstr "Bitte zuerst eine Identitätsdatei auswählen"
+msgstr "Kies eerst een identiteitsbestand"
 
 msgid "No device selected"
-msgstr "Kein Gerät ausgewählt"
+msgstr "Geen apparaat geselecteerd"
 
 msgid "Running…"
-msgstr "Läuft…"
+msgstr "Bezig…"
 
 msgid "Stopping…"
-msgstr "Stoppt…"
+msgstr "Stoppen…"
 
 msgid "New best level:"
-msgstr "Neues höchstes Level:"
+msgstr "Nieuw beste niveau:"
 
 msgid "Target reached"
-msgstr "Ziel erreicht"
+msgstr "Doel bereikt"
 
 msgid "Stopped"
-msgstr "Gestoppt"
+msgstr "Gestopt"
 
 msgid "Error"
-msgstr "Fehler"
+msgstr "Fout"
 
 msgid "ETA"
 msgstr "ETA"
 
 msgid "Main menu"
-msgstr "Hauptmenü"
+msgstr "Hoofdmenu"
 
 msgid "About TS3 Identity Level"
-msgstr "Über TS3-Identity-Level"
+msgstr "Over TS3 Identity Level"
 
 msgid "Identity details"
-msgstr "Identitäts-Details"
+msgstr "Identiteitsdetails"
 
 msgid "Nickname"
-msgstr "Nickname"
+msgstr "Bijnaam"
 
 msgid "Local ID"
 msgstr "Lokale ID"
 
 msgid "Fingerprint"
-msgstr "Fingerprint"
+msgstr "Vingerafdruk"
 
 msgid "Public key"
-msgstr "Öffentlicher Schlüssel"
+msgstr "Publieke sleutel"
 
 msgid "Click to reveal"
-msgstr "Klicken zum Einblenden"
+msgstr "Klik om te tonen"
 
 msgid "ETA to next level"
-msgstr "Restzeit bis nächstes Level"
+msgstr "Resttijd tot volgende niveau"
 
 msgid "ETA to target"
-msgstr "Restzeit bis Ziel"
+msgstr "Resttijd tot doel"
 
 msgid "Cannot read identity"
-msgstr "Identität konnte nicht gelesen werden"
+msgstr "Kan identiteit niet lezen"
 
 msgid "Raise the security level of a TeamSpeak 3 identity on a GPU.\nNot affiliated with TeamSpeak Systems GmbH."
-msgstr "Erhöht das Security Level einer TeamSpeak-3-Identität auf der GPU.\nNicht zugehörig zu TeamSpeak Systems GmbH."
+msgstr "Verhoog het beveiligingsniveau van een TeamSpeak 3-identiteit op een GPU.\nNiet verbonden met TeamSpeak Systems GmbH."
 
 msgid "GPU stats"
-msgstr "GPU-Statistik"
+msgstr "GPU-statistieken"
 
 msgid "Utilization"
-msgstr "Auslastung"
+msgstr "Gebruik"
 
 msgid "VRAM"
 msgstr "VRAM"
 
 msgid "Temperature"
-msgstr "Temperatur"
+msgstr "Temperatuur"
 
 msgid "Power"
-msgstr "Leistung"
+msgstr "Vermogen"
 
 msgid "GPU utilization, last 60 s"
-msgstr "GPU-Auslastung, letzte 60 s"
+msgstr "GPU-gebruik, laatste 60 s"
 
 msgid "TS3 Identity Level computes the SHA-1 proof-of-work that determines a TeamSpeak 3 identity's security level — only much faster than the official client, by running on your GPU.\n\nThe tool reads the .ini file you export from TeamSpeak 3, finds a counter value whose SHA-1 of (public key ‖ counter) has more leading zero bits, and writes the new file atomically. A one-shot backup of the original is kept next to it.\n\nNot affiliated with, endorsed by, or sponsored by TeamSpeak Systems GmbH. 'TeamSpeak' is a trademark of TeamSpeak Systems GmbH and is used here only descriptively."
-msgstr "TS3 Identity Level berechnet den SHA-1-Proof-of-Work, der das Security Level einer TeamSpeak-3-Identität bestimmt — nur deutlich schneller als der offizielle Client, da die Berechnung auf der GPU läuft.\n\nDas Tool liest die aus TeamSpeak 3 exportierte .ini-Datei, sucht einen Counter, dessen SHA-1 von (Public Key ‖ Counter) mehr führende Nullbits hat, und schreibt die Datei atomar zurück. Eine einmalige Sicherung des Originals wird daneben abgelegt.\n\nNicht zugehörig zu, befürwortet oder unterstützt von TeamSpeak Systems GmbH. „TeamSpeak“ ist eine Marke der TeamSpeak Systems GmbH und wird hier nur beschreibend verwendet."
+msgstr "TS3 Identity Level berekent het SHA-1-proof-of-work dat het beveiligingsniveau van een TeamSpeak 3-identiteit bepaalt — alleen veel sneller dan de officiële client, doordat het op je GPU draait.\n\nDe tool leest het .ini-bestand dat je vanuit TeamSpeak 3 exporteert, zoekt een tellerwaarde waarvan SHA-1 van (publieke sleutel ‖ teller) meer voorloopnullen heeft, en schrijft het nieuwe bestand atomair weg. Er wordt eenmalig een back-up van het origineel ernaast gezet.\n\nNiet verbonden met, ondersteund door of gesponsord door TeamSpeak Systems GmbH. 'TeamSpeak' is een handelsmerk van TeamSpeak Systems GmbH en wordt hier enkel beschrijvend gebruikt."
 
 msgid "Source code"
-msgstr "Quellcode"
+msgstr "Broncode"
 
 msgid "Usage guide"
-msgstr "Bedienungsanleitung"
+msgstr "Gebruikershandleiding"
 
 msgid "Algorithm specification"
-msgstr "Algorithmus-Spezifikation"
+msgstr "Algoritmespecificatie"
 
 msgid "Algorithm references"
-msgstr "Algorithmus-Quellen"
+msgstr "Algoritmebronnen"
 
 msgid "Runtime libraries"
-msgstr "Eingesetzte Bibliotheken"
+msgstr "Gebruikte bibliotheken"
 
 msgid "translator-credits"
 msgstr "Sebastian van de Meer <kernel-error@kernel-error.com>"
 
 msgid "note: target"
-msgstr "Hinweis: Ziel"
+msgstr "let op: doel"
 
 msgid "raising to"
-msgstr "wird angehoben auf"
+msgstr "wordt verhoogd naar"

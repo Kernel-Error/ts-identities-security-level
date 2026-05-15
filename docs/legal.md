@@ -1,11 +1,14 @@
 # Legal posture
 
-Short version: this is a Linux tool that runs a SHA-1 brute-force on a file
-the user already owns, without contacting a TeamSpeak server. The algorithm
-is public, the existing tooling has been on GitHub unmolested for years,
-and no relevant patents exist. Risk to a German-resident maintainer is
-low. This document is not legal advice — it is the maintainer's own
-read of public information.
+**This document is the maintainer's own technical risk assessment based
+on public information. It is not legal advice.**
+
+Short version: this is a Linux tool that runs a SHA-1 brute-force on a
+file the user already owns, without contacting a TeamSpeak server. The
+algorithm is public, the existing tooling has been on GitHub unmolested
+for years, and no relevant patents exist. Based on the current technical
+design and public documentation, risk to a German-resident maintainer
+appears low.
 
 ## Algorithm provenance
 

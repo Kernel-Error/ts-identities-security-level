@@ -35,16 +35,22 @@ pub fn write_back(path: &Path, identity: &IdentityFile) -> Result<()> {
             path: path.to_owned(),
             source,
         })?;
-    flock_exclusive(&f, true).map_err(|_| Error::Locked(path.to_owned()))?;
+    // Blocking flock: any failure here is a real OS error (the kernel
+    // does not return EWOULDBLOCK for a blocking acquire). Don't pretend
+    // an EIO / EINTR / ENOLCK is just "another process holds it".
+    flock_exclusive(&f, true).map_err(|source| Error::Io {
+        path: path.to_owned(),
+        source,
+    })?;
 
     let bak = backup_path(path);
     if !bak.exists() {
-        // Best-effort: if copy fails after the file is locked, the user
-        // would be surprised that the .bak vanishes; preserve the error.
         std::fs::copy(path, &bak).map_err(|source| Error::Io {
             path: bak.clone(),
             source,
         })?;
+        // Durably commit the new directory entry for the .bak.
+        sync_parent(parent)?;
     }
 
     let mut tmp = tempfile::Builder::new()
@@ -75,10 +81,30 @@ pub fn write_back(path: &Path, identity: &IdentityFile) -> Result<()> {
         source: e.error,
     })?;
 
+    // POSIX `rename(2)` is atomic for visibility, but the directory
+    // entry update is not guaranteed durable until the parent dir is
+    // also fsync'd. Without this an unexpected power loss after
+    // `persist` can revert `path` to its pre-rename inode.
+    sync_parent(parent)?;
+
     // f drops here, releasing the flock on the previous inode (which is
     // now unlinked — the new file at `path` is a different inode).
     drop(f);
     Ok(())
+}
+
+/// `fsync` the directory so that recent `rename(2)` / `creat(2)` entries
+/// are durable. POSIX permits a clean crash to lose un-sync'd directory
+/// updates even when the underlying file data was sync'd.
+fn sync_parent(parent: &Path) -> Result<()> {
+    let dir = std::fs::File::open(parent).map_err(|source| Error::Io {
+        path: parent.to_owned(),
+        source,
+    })?;
+    dir.sync_all().map_err(|source| Error::Io {
+        path: parent.to_owned(),
+        source,
+    })
 }
 
 /// Side-effect-free probe: return `Ok(())` if we can acquire an exclusive
@@ -94,8 +120,26 @@ pub fn probe_lock(path: &Path) -> Result<()> {
         })?;
     match flock_exclusive(&f, false) {
         Ok(()) => Ok(()),
-        Err(_) => Err(Error::Locked(path.to_owned())),
+        // Only EWOULDBLOCK means "another holder, retry later". Anything
+        // else is a real OS fault and should surface as such.
+        Err(e) if e.raw_os_error() == Some(libc_ewouldblock()) => {
+            Err(Error::Locked(path.to_owned()))
+        }
+        Err(source) => Err(Error::Io {
+            path: path.to_owned(),
+            source,
+        }),
     }
+}
+
+/// `EWOULDBLOCK` numeric value on Linux. Pulled out so the writer crate
+/// doesn't have to take a `libc` dependency just for one constant.
+#[inline]
+const fn libc_ewouldblock() -> i32 {
+    // EWOULDBLOCK == EAGAIN == 11 on Linux on every architecture we
+    // currently target. macOS / BSDs use different values; if this
+    // crate ever ships there, switch to the `libc` crate's constant.
+    11
 }
 
 /// `<path>.bak` — preserving the original extension makes the backup

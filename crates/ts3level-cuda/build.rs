@@ -19,12 +19,14 @@ const KERNEL_SOURCE: &str = "kernels/sha1_hasher.cu";
 /// Each entry pairs an `arch=` virtual architecture with a `code=` real
 /// (or PTX-fallback) one.
 const TARGETS: &[(&str, &str)] = &[
-    ("compute_70", "sm_70"),
-    ("compute_75", "sm_75"),
-    ("compute_80", "sm_80"),
-    ("compute_86", "sm_86"),
-    ("compute_89", "sm_89"),
-    ("compute_90", "sm_90"),
+    ("compute_52", "sm_52"), // Maxwell (GTX 9xx, Titan X Maxwell)
+    ("compute_61", "sm_61"), // Pascal (GTX 1060/1070/1080, Titan X Pascal, P100)
+    ("compute_70", "sm_70"), // Volta (V100, Titan V)
+    ("compute_75", "sm_75"), // Turing (RTX 2060/70/80, GTX 16xx, T4)
+    ("compute_80", "sm_80"), // Ampere DC (A100)
+    ("compute_86", "sm_86"), // Ampere consumer (RTX 3060/70/80/90)
+    ("compute_89", "sm_89"), // Ada (RTX 4060/70/80/90)
+    ("compute_90", "sm_90"), // Hopper (H100)
     ("compute_90", "compute_90"), // PTX fallback for future GPUs (JIT)
 ];
 

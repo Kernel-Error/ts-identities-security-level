@@ -27,7 +27,11 @@ phonetic_nickname=
 ```
 
 That file alone is everything this tool needs. **Treat it like an SSH
-private key** — it contains your private signing material.
+private key** — it contains your private signing material:
+
+- do not upload it anywhere
+- do not paste it into issues, chat, or screenshots
+- do not run this tool on files you do not own
 
 While the tool is running, **either close TeamSpeak** or work on an
 exported *copy* (not on the original `identities` folder inside TS3's
