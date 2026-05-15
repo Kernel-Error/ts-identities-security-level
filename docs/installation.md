@@ -155,7 +155,7 @@ Additional runtime libraries required only by `ts3level-gui`:
 
 Minimum versions: GTK 4.12, libadwaita 1.5. Anything from mid-2024
 onwards has them; on Debian stable or other distros with older GNOME
-stacks you may have to backport or wait for the Flatpak (planned).
+stacks you may have to backport or use the CLI instead.
 
 ## 7. Building from source
 

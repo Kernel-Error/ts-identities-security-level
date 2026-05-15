@@ -92,7 +92,9 @@ GPUs.
   errors fall back.
 - **`clap` help-text translation** — separate from `gettext` flow.
 - **GUI integration test** with a headless Wayland compositor.
-- **Flatpak packaging** + Flathub submission. Manifest skeleton is
-  planned in `packaging/flatpak/`.
-- **CI workflow** with `Jimver/cuda-toolkit` action for the kernel
-  build, GPU-dependent tests `#[ignored]` on hosted runners.
+- **Additional languages** — Dutch (`nl`) and other community-driven
+  translations on top of en/de/es/fr.
+- **Committed end-to-end algorithm test vector** — a self-generated
+  identity in real TS3 `.ini` format plus the expected fingerprint and
+  level values, so the algorithm round-trip is verified in CI without
+  any manual cross-check.

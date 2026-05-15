@@ -17,8 +17,7 @@ pub fn tr(msg: &str) -> String {
 }
 
 fn locale_dir() -> String {
-    // Honor a build-time/install-time override; fall back to the standard
-    // /usr/share/locale or /usr/local/share/locale. The Flatpak build
-    // injects /app/share/locale via env at runtime.
+    // Honor a build-time/install-time override; fall back to the
+    // standard /usr/share/locale or /usr/local/share/locale.
     std::env::var("TS3LEVEL_LOCALEDIR").unwrap_or_else(|_| "/usr/share/locale".into())
 }

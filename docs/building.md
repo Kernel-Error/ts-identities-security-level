@@ -1,8 +1,7 @@
 # Building from source
 
-End users do **not** need any of this — the released binary or Flatpak
-only requires the NVIDIA driver. This document covers building from
-source.
+End users do **not** need any of this — the released binary only
+requires the NVIDIA driver. This document covers building from source.
 
 ## Prerequisites
 

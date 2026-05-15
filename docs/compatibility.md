@@ -68,9 +68,6 @@ cargo build --release
 `build.rs` finds `nvcc` automatically; you only need GTK4 + libadwaita
 dev packages for `ts3level-gui` — the CLI builds without them.
 
-A future release will provide a **Flatpak** that bundles its own GTK,
-glibc, and NVIDIA-GL runtime from Flathub, sidestepping all of this.
-
 ## GUI desktop dependencies
 
 `ts3level-gui` needs:
@@ -96,4 +93,3 @@ beyond glibc.
 | Older card (GTX 10-series, Pascal)                  | Patch `build.rs` (add `sm_61`), rebuild.|
 | Older distro (Ubuntu 22.04, Debian 12, RHEL 9)      | Build from source on the target.        |
 | Headless server                                     | Use `ts3level` (CLI); no GUI deps needed.|
-| Multi-distro distribution                           | Wait for the Flatpak release (planned). |

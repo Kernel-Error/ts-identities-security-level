@@ -48,7 +48,8 @@ the official client reports for the same identity, byte-identical.
   [docs/roadmap.md](docs/roadmap.md) and would close most of that gap.
 - Pascal (`sm_61`) and older GPUs need a one-line patch to
   `crates/ts3level-cuda/build.rs` plus a rebuild.
-- No Flatpak yet; pre-built binary requires glibc ≥ 2.39.
+- Pre-built binary requires glibc ≥ 2.39; older distros need to build
+  from source.
 - OpenCL/AMD support pending — the `HashEngine` trait makes this a
   drop-in.
 
