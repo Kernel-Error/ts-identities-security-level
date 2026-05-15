@@ -8,10 +8,21 @@ project follows [Semantic Versioning](https://semver.org).
 
 ### Performance
 
+- **In-place decimal counter increment.** The kernel no longer
+  re-encodes the counter ASCII from scratch every iteration via
+  `utoa64_be`; instead it bumps the trailing digits in place and only
+  re-bakes the message tail when the counter crosses a 10^k boundary
+  (which happens log10(n_per_thread) times at most across an entire
+  launch). The SHA-1 padding byte, zero fill, and 8-byte length suffix
+  are also pre-baked once per thread now and only re-laid when the
+  digit count changes. Per-iteration write traffic to the per-thread
+  `msg[]` buffer drops from ~50 bytes to ~1 byte in the common
+  no-carry case. Measured 5.94 → **7.66 GH/s** (+29 %) on the RTX
+  4060 Ti. Median of 5 runs at 500 M counters.
 - **Host-side SHA-1 midstate precompute and an atomic-fast-path
-  rewrite roughly double the sustained hashrate on a from-scratch
-  run.** Measured on the RTX 4060 Ti, 500 M-counter window: 2.85 GH/s
-  before, **5.94 GH/s after** (+108 %). Three changes layered:
+  rewrite roughly doubled the sustained hashrate before that.**
+  Measured on the RTX 4060 Ti, 500 M-counter window: 2.85 GH/s before,
+  5.94 GH/s after (+108 %). Three changes layered:
   - **Midstate precompute.** The pubkey prefix is constant across a
     launch, so the host SHA-1s every complete 64-byte block of it
     once and passes the resulting `h[0..5]` to the kernel. The kernel

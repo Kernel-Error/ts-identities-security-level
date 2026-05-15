@@ -30,14 +30,20 @@ gains `--retune` to ignore the cache. Measured +18 % on the RTX
 > savings — the original kernel was atomic-bound on the from-scratch
 > case (every level≥1 hit serialised on one device slot).
 >
-> **C-2b (remaining):** eliminate the per-thread `msg[]` byte buffer
-> entirely, build the SHA-1 message in u32 registers, and replace
-> `utoa64_be` with an in-place decimal-counter increment that only
-> updates the changed digits. Expected to bring the kernel closer to
-> the ~10 GH/s ceiling on this card.
+> **C-2b (done, partial):** in-place decimal-counter increment.
+> `utoa64_be` no longer runs per attempt; the kernel bumps the
+> trailing digits of `msg[]` in place and re-bakes the 0x80 / zero
+> fill / length suffix only when the counter crosses a 10^k
+> boundary. Combined with C-2c, sustained hashrate on the 4060 Ti is
+> now 7.66 GH/s, up from 2.85 GH/s pre-tranche (~2.7×). The remaining
+> ceiling on this card is set by the per-thread `msg[]` byte buffer
+> still living in local memory — the next plausible step is to
+> represent the message tail as 16 u32 registers and splice the
+> counter digits in via shift/mask, but that's a substantial rewrite
+> and not on the near-term path.
 
-Reference: `thissepic/TeamSpeakHasher` achieves ~20 GH/s on an RTX
-4070 Ti; we currently sit at ~5.94 GH/s on a 4060 Ti.
+Reference: `thissepic/TeamSpeakHasher` reaches ~20 GH/s on an RTX
+4070 Ti; we currently sit at ~7.66 GH/s on a 4060 Ti.
 
 Items, each independently testable:
 

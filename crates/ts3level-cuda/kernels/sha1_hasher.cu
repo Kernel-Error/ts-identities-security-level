@@ -137,24 +137,25 @@ __device__ __forceinline__ uint32_t digest_level(const uint32_t h[5]) {
 
 // ---- ASCII decimal of a uint64 -----------------------------------------
 
-// Write `n` as decimal ASCII into `out`. Returns the number of digits
-// written (1..=20). Output is in normal big-endian / left-to-right order.
-__device__ __forceinline__ int utoa64_be(uint64_t n, uint8_t* out) {
-    if (n == 0) {
-        out[0] = '0';
-        return 1;
-    }
-    uint8_t buf[20];
-    int len = 0;
-    while (n > 0) {
-        buf[len++] = (uint8_t)('0' + (n % 10));
+// Count the decimal digits of `n` (returns 1..=20). Used to seed the
+// per-thread counter ASCII state; subsequent iterations only run this
+// when the digit count changes (crossing a 10^k boundary).
+__device__ __forceinline__ int decimal_digit_count(uint64_t n) {
+    int len = 1;
+    while (n >= 10) {
         n /= 10;
-    }
-    // Reverse into `out`.
-    for (int i = 0; i < len; i++) {
-        out[i] = buf[len - 1 - i];
+        len++;
     }
     return len;
+}
+
+// Encode `n` as exactly `len` decimal ASCII characters at `out[0..len]`,
+// most-significant digit first. Caller guarantees `len == decimal_digit_count(n)`.
+__device__ __forceinline__ void encode_decimal(uint64_t n, int len, uint8_t* out) {
+    for (int j = len - 1; j >= 0; j--) {
+        out[j] = (uint8_t)('0' + (n % 10));
+        n /= 10;
+    }
 }
 
 // ---- Main kernel -------------------------------------------------------
@@ -211,21 +212,23 @@ extern "C" __global__ void sha1_hasher(const uint8_t* __restrict__ pubkey_tail,
         msg[i] = pubkey_tail[i];
     }
 
-    for (uint64_t i = 0; i < n_per_thread; i++) {
-        const uint64_t counter = base + i;
-
-        const int counter_len = utoa64_be(counter, msg + pubkey_tail_len);
-        const int total = (int)pubkey_tail_len + counter_len;
-
-        // SHA-1 padding.
-        msg[total] = 0x80;
-        const int blocks = (total + 1 + 8 + 63) / 64;
-        const int padded = blocks * 64;
-        for (int j = total + 1; j < padded - 8; j++) {
-            msg[j] = 0;
-        }
-        // 64-bit BE length in bits: full message length includes the
-        // bytes the host already folded into the midstate.
+    // Build msg[] once for the starting counter: counter digits, then
+    // SHA-1 0x80 marker, zero-fill, and 8-byte length suffix. The inner
+    // loop bumps the counter digits in place and only re-bakes the
+    // tail when the digit count changes (i.e. when counter crosses a
+    // 10^k boundary, which happens at most log10(n_per_thread) times
+    // across the whole launch).
+    uint64_t counter = base;
+    int counter_len = decimal_digit_count(counter);
+    int total = (int)pubkey_tail_len + counter_len;
+    int blocks = (total + 1 + 8 + 63) / 64;
+    int padded = blocks * 64;
+    encode_decimal(counter, counter_len, msg + pubkey_tail_len);
+    msg[total] = 0x80;
+    for (int j = total + 1; j < padded - 8; j++) {
+        msg[j] = 0;
+    }
+    {
         const uint64_t bit_len = prefix_bit_len + (uint64_t)total * 8;
         msg[padded - 8] = (uint8_t)(bit_len >> 56);
         msg[padded - 7] = (uint8_t)(bit_len >> 48);
@@ -235,7 +238,9 @@ extern "C" __global__ void sha1_hasher(const uint8_t* __restrict__ pubkey_tail,
         msg[padded - 3] = (uint8_t)(bit_len >> 16);
         msg[padded - 2] = (uint8_t)(bit_len >> 8);
         msg[padded - 1] = (uint8_t)(bit_len);
+    }
 
+    for (uint64_t i = 0; i < n_per_thread; i++) {
         uint32_t h[5] = { h0_init, h1_init, h2_init, h3_init, h4_init };
         for (int b = 0; b < blocks; b++) {
             sha1_block(h, msg + b * 64);
@@ -259,6 +264,51 @@ extern "C" __global__ void sha1_hasher(const uint8_t* __restrict__ pubkey_tail,
                     atomicExch(g_best_counter, (unsigned long long)counter);
                 }
             }
+        }
+
+        // Advance to the next counter. Skip on the last iteration so
+        // we don't pay for the bump when the result is discarded.
+        if (i + 1 >= n_per_thread) {
+            break;
+        }
+        counter++;
+        // In-place increment of the trailing digits. The loop falls
+        // through to msg[p]++ in the common no-carry case (~90 % of
+        // iterations for decimal counters); a chain of '9' → '0' walks
+        // back across consecutive 9s; and if we walk past the most
+        // significant digit, the counter just gained a digit and the
+        // padding/length suffix shift back by one byte, so re-bake the
+        // tail of msg[].
+        int p = (int)pubkey_tail_len + counter_len - 1;
+        while (p >= (int)pubkey_tail_len && msg[p] == '9') {
+            msg[p] = '0';
+            p--;
+        }
+        if (p < (int)pubkey_tail_len) {
+            counter_len++;
+            total = (int)pubkey_tail_len + counter_len;
+            const int new_blocks = (total + 1 + 8 + 63) / 64;
+            const int new_padded = new_blocks * 64;
+            // Re-encode the entire counter into the (now shifted)
+            // digit slot. Skip the leading '1' written below.
+            encode_decimal(counter, counter_len, msg + pubkey_tail_len);
+            msg[total] = 0x80;
+            for (int j = total + 1; j < new_padded - 8; j++) {
+                msg[j] = 0;
+            }
+            const uint64_t bit_len = prefix_bit_len + (uint64_t)total * 8;
+            msg[new_padded - 8] = (uint8_t)(bit_len >> 56);
+            msg[new_padded - 7] = (uint8_t)(bit_len >> 48);
+            msg[new_padded - 6] = (uint8_t)(bit_len >> 40);
+            msg[new_padded - 5] = (uint8_t)(bit_len >> 32);
+            msg[new_padded - 4] = (uint8_t)(bit_len >> 24);
+            msg[new_padded - 3] = (uint8_t)(bit_len >> 16);
+            msg[new_padded - 2] = (uint8_t)(bit_len >> 8);
+            msg[new_padded - 1] = (uint8_t)(bit_len);
+            blocks = new_blocks;
+            padded = new_padded;
+        } else {
+            msg[p]++;
         }
     }
 }
