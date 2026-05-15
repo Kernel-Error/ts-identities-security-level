@@ -18,7 +18,9 @@ project follows [Semantic Versioning](https://semver.org).
   test-plan checklist and a prominent warning against attaching real
   `.ini` identity files.
 - **`CONTRIBUTING.md`** with the minimal contributor guide: tool
-  versions, the commands CI runs, where the docs live.
+  versions, the commands CI runs, where the docs live, and an issue-label
+  table that pairs the nine in-use labels with their meaning and how
+  they combine.
 
 ### Changed
 
