@@ -103,9 +103,9 @@ release](https://github.com/Kernel-Error/ts-identities-security-level/releases).
 Built on Ubuntu 24.04, glibc 2.39 — runs on any newer Linux.
 
 ```bash
-curl -LO https://github.com/Kernel-Error/ts-identities-security-level/releases/latest/download/ts3level-v0.1.0-x86_64-linux.tar.gz
-tar -xzf ts3level-v0.1.0-x86_64-linux.tar.gz
-cd ts3level-v0.1.0-x86_64-linux
+curl -LO https://github.com/Kernel-Error/ts-identities-security-level/releases/latest/download/ts3level-v0.2.0-x86_64-linux.tar.gz
+tar -xzf ts3level-v0.2.0-x86_64-linux.tar.gz
+cd ts3level-v0.2.0-x86_64-linux
 sudo install -m755 bin/ts3level     /usr/local/bin/
 sudo install -m755 bin/ts3level-gui /usr/local/bin/
 sudo cp -r share/locale/*           /usr/share/locale/
