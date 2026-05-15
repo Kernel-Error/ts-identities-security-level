@@ -92,7 +92,43 @@ user rights. If you find yourself running it as root, something is
 configured wrong (and a level-bump as root could create a file owned by
 root that the TS3 client can no longer overwrite cleanly).
 
-## 4. Running the CLI (headless)
+## 4. Installing the binaries
+
+You have three options.
+
+### a) Prebuilt release tarball (easiest)
+
+Attached to each [GitHub
+release](https://github.com/Kernel-Error/ts-identities-security-level/releases).
+Built on Ubuntu 24.04, glibc 2.39 — runs on any newer Linux.
+
+```bash
+curl -LO https://github.com/Kernel-Error/ts-identities-security-level/releases/latest/download/ts3level-v0.1.0-x86_64-linux.tar.gz
+tar -xzf ts3level-v0.1.0-x86_64-linux.tar.gz
+cd ts3level-v0.1.0-x86_64-linux
+sudo install -m755 bin/ts3level     /usr/local/bin/
+sudo install -m755 bin/ts3level-gui /usr/local/bin/
+sudo cp -r share/locale/*           /usr/share/locale/
+```
+
+Verify: `ts3level --list-devices`.
+
+### b) Run from the unpacked tarball without installing
+
+```bash
+TS3LEVEL_LOCALEDIR="$PWD/share/locale" ./bin/ts3level --list-devices
+TS3LEVEL_LOCALEDIR="$PWD/share/locale" ./bin/ts3level-gui
+```
+
+The env var tells the binary where to find the compiled `.mo`
+translation files. With them missing, the UI falls back to English.
+
+### c) Build from source
+
+See [section 7](#7-building-from-source) below. Required if your distro
+predates glibc 2.39, or if you need Pascal-era GPU support.
+
+## 5. Running the CLI (headless)
 
 The CLI binary has no GUI dependencies. On a headless server you only
 need the NVIDIA driver and your user in the right group:
@@ -106,7 +142,7 @@ That's it. Works inside SSH, tmux, systemd services, etc.
 For systemd, the unit file should set `User=youruser` (not `User=root`)
 and `Group=render`/`video` matching the device permissions.
 
-## 5. Running the GUI
+## 6. Running the GUI
 
 Additional runtime libraries required only by `ts3level-gui`:
 
@@ -121,7 +157,7 @@ Minimum versions: GTK 4.12, libadwaita 1.5. Anything from mid-2024
 onwards has them; on Debian stable or other distros with older GNOME
 stacks you may have to backport or wait for the Flatpak (planned).
 
-## 6. Building from source
+## 7. Building from source
 
 Only needed if your distro is too old for the prebuilt binary or you
 want Pascal-era GPU support.
@@ -145,7 +181,7 @@ Outputs: `target/release/ts3level` and `target/release/ts3level-gui`.
 You do **not** need root for any of these — the toolchain installs to
 `~/.cargo` and the build writes to the project's `target/` directory.
 
-## 7. What the preflight checks for at every start
+## 8. What the preflight checks for at every start
 
 A condensed list of what the tool verifies before doing any work, in
 the order it checks them:

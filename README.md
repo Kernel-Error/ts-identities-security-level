@@ -71,12 +71,30 @@ sudo apt install nvidia-driver-550 libgtk-4-1 libadwaita-1-0 gettext-base
 sudo usermod -aG render $USER       # log out + back in afterwards
 ```
 
+### From the prebuilt release
+
+A precompiled tarball for `x86_64-linux` (glibc ≥ 2.39) is attached to
+each [release](https://github.com/Kernel-Error/ts-identities-security-level/releases):
+
+```bash
+curl -LO https://github.com/Kernel-Error/ts-identities-security-level/releases/download/v0.1.0/ts3level-v0.1.0-x86_64-linux.tar.gz
+tar -xzf ts3level-v0.1.0-x86_64-linux.tar.gz
+cd ts3level-v0.1.0-x86_64-linux
+sudo install -m755 bin/ts3level     /usr/local/bin/
+sudo install -m755 bin/ts3level-gui /usr/local/bin/
+sudo cp -r share/locale/*           /usr/share/locale/
+```
+
+Verify with `ts3level --list-devices`.
+
 ## Building from source
 
-See [docs/building.md](docs/building.md). You need a Rust toolchain, the
-CUDA Toolkit (for the kernel compile step), and GTK4 + libadwaita dev
-headers if you want the GUI. End users only need the NVIDIA driver —
-everything else is statically or dynamically resolved at runtime.
+If your distro is too old for the prebuilt tarball, or you want Pascal
+support, build it locally — see [docs/building.md](docs/building.md).
+You need a Rust toolchain, the CUDA Toolkit (for the kernel compile
+step), and GTK4 + libadwaita dev headers if you want the GUI. End users
+only need the NVIDIA driver — everything else is statically or
+dynamically resolved at runtime.
 
 ## Compatibility
 
@@ -93,6 +111,13 @@ The identity format and the level formula are documented by long-standing
 open-source projects derived from black-box analysis of the `.ini` file
 (no decompilation of the client). See [docs/algorithm.md](docs/algorithm.md)
 for references and full pseudocode.
+
+## Releases & change history
+
+Versioned releases ship on
+[GitHub](https://github.com/Kernel-Error/ts-identities-security-level/releases)
+with prebuilt `x86_64-linux` tarballs (binaries + locale files).
+Per-version notes live in [CHANGELOG.md](CHANGELOG.md).
 
 ## License
 
