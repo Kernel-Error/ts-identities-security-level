@@ -45,38 +45,27 @@ gains `--retune` to ignore the cache. Measured +18 % on the RTX
 Reference: `thissepic/TeamSpeakHasher` reaches ~20 GH/s on an RTX
 4070 Ti; we currently sit at ~7.66 GH/s on a 4060 Ti.
 
-Items, each independently testable:
+The last remaining piece — move the per-thread `msg[]` byte buffer
+from local memory into u32 registers, with the counter ASCII spliced
+into the right words via shift/mask — is tracked as
+[#27](https://github.com/Kernel-Error/ts-identities-security-level/issues/27).
+Expected ~30-50 % beyond today (would put the 4060 Ti close to the
+~10 GH/s ceiling from the original B-package estimate).
 
-1. **SHA-1 midstate precompute.** `pubkey_b64` is constant across a
-   launch. The host can run the first 1-2 SHA-1 blocks once and pass the
-   intermediate `h[0..5]` to the kernel; the kernel starts from there and
-   only processes the final 1-2 blocks containing the counter digits.
-   ~2× alone.
+Practical wall-clock reach today at 7.66 GH/s, single 4060 Ti:
 
-2. **In-place counter increment.** The current `utoa64_be` loop
-   recomputes the full decimal string per attempt. With sequential
-   counters, 90 %+ of iterations only need to bump the least-significant
-   digit (with carry propagation for boundaries like 9999999 →
-   10000000). ~1.5×.
+- Level 40: ~2.4 min
+- Level 50: ~1.7 days
+- Level 55: ~54 days
+- Level 60+: still not practical on a single card.
 
-3. **PTX intrinsics.** Use `__clz` for leading-zero counting,
-   `LOP3.LUT`-friendly forms for SHA-1's `Ch`/`Maj`/`Parity` round
-   functions, and `__funnelshift_l` for 32-bit rotations. Each saves a
-   handful of cycles per block transform. ~1.5×.
-
-4. **Move the message buffer out of stack-allocated arrays into
-   registers** where possible — the current `uint8_t msg[192]` per
-   thread spills to local memory on most archs and hurts occupancy.
-   ~1.3×.
-
-Strict gate before merging: extend the CPU/GPU parity test
-(`crates/ts3level-cuda/tests/cpu_parity.rs`) to cover the new code paths
-exhaustively. A subtle off-by-one in the SHA-1 padding would silently
-corrupt every hash and the user would never know — the CLI/GUI would
-just stop finding levels.
-
-Expected outcome on the 4060 Ti: ~10 GH/s. Level 55 ETA drops from
-~16 h to ~4 h; level 60 ETA drops from ~50 d to ~12 d.
+Strict gate before any further kernel-shape changes: the GPU/CPU
+parity tests in `crates/ts3level-cuda/tests/cpu_parity.rs` must stay
+green for every intermediate state, not just the final one. The
+`many_independent_windows_match_cpu` test in particular verifies
+8 independent (counter, level) pairs against the CPU reference and
+catches per-bit-position regressions that the single-winner check
+would miss.
 
 ## C — Multi-GPU support (linear win per extra card, ~½ day)
 
