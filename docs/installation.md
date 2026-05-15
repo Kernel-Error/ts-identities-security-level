@@ -181,7 +181,21 @@ Outputs: `target/release/ts3level` and `target/release/ts3level-gui`.
 You do **not** need root for any of these — the toolchain installs to
 `~/.cargo` and the build writes to the project's `target/` directory.
 
-## 8. What the preflight checks for at every start
+## 8. Files the tool writes outside the project directory
+
+`ts3level` creates exactly one file outside the directory you point it
+at:
+
+- **`$XDG_CACHE_HOME/ts3level/tuning.json`** (default
+  `~/.cache/ts3level/tuning.json`) — caches the optimal CUDA launch
+  geometry per GPU after the first run. Safe to delete; the tool will
+  re-probe on the next start. Pass `--retune` to force a fresh probe
+  without removing the file.
+
+That's it. No state in `/etc`, no daemon, no systemd unit, no log
+files anywhere.
+
+## 9. What the preflight checks for at every start
 
 A condensed list of what the tool verifies before doing any work, in
 the order it checks them:

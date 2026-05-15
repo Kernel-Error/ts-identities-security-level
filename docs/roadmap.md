@@ -1,24 +1,18 @@
 # Roadmap
 
-Ranked by impact-per-effort. Pick one when there's appetite for it; the
-project is shippable as-is at v0.1.
+Open work items live as [GitHub
+Issues](https://github.com/Kernel-Error/ts-identities-security-level/issues).
+This file keeps a per-package overview for context — the issues are
+the source of truth for what's actually in flight.
 
-## A — Auto-tune launch geometry (small win, ~½ day)
+## A — Auto-tune launch geometry · *done* ✓
 
-Current state: `BLOCKS_PER_SM = 32`, `THREADS_PER_BLOCK = 256` are
-constants in `crates/ts3level-cuda/src/lib.rs`. Works correctly on every
-supported arch but is not optimal for any specific one.
-
-Plan:
-- On first launch with a given device, run 3-4 short probe batches with
-  combinations of `(blocks_per_sm ∈ {16, 24, 32, 48}, threads_per_block ∈
-  {128, 256, 384, 512})`.
-- Pick the fastest, cache by device name to
-  `~/.cache/ts3level/tuning.json`.
-- Subsequent runs read the cache and skip probing.
-
-Expected gain: ~5-20 % on a single card. Marginal next to package B,
-but cheap and self-contained.
+Landed in commit `33294e7` (closed issue #2). On the first
+`select_device` call per device, the engine runs a 9-combination probe
+sweep (3 × 3 over `{16, 32, 48} × {128, 256, 512}`), picks the fastest,
+and caches the result in `$XDG_CACHE_HOME/ts3level/tuning.json`. CLI
+gains `--retune` to ignore the cache. Measured +18 % on the RTX
+4060 Ti (2.4 → 2.85 GH/s).
 
 ## B — Kernel-level optimization (big win, ~1-2 days)
 

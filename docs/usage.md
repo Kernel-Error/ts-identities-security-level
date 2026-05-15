@@ -90,6 +90,24 @@ If TS3 says "this identity already exists", it usually still imports it
 under a new name; you can then delete the old version and rename the new
 one.
 
+## Re-tuning the GPU launch geometry
+
+On the first `select_device` call for a given GPU, the tool runs a small
+9-combination probe sweep (~3-4 seconds total) to find the best launch
+geometry for *your* card and caches the result as JSON in
+`$XDG_CACHE_HOME/ts3level/tuning.json` (or `~/.cache/ts3level/` if the
+env var is unset). Subsequent runs read the cache and skip the probe.
+
+Pass `--retune` to ignore the cache and re-probe. Useful after a
+driver update, a kernel upgrade, or if a previous probe accidentally
+ran while the GPU was busy with something else:
+
+```bash
+ts3level --retune --target 55 path/to/your-identity.ini
+```
+
+The freshly-measured numbers are written back to the cache.
+
 ## Tips
 
 - **Realistic expectations:** each level doubles the expected work.

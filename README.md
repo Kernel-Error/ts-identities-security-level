@@ -1,4 +1,4 @@
-# ts-identities-security-level
+# TS3 Identity Level
 
 [![CI](https://github.com/Kernel-Error/ts-identities-security-level/actions/workflows/ci.yml/badge.svg)](https://github.com/Kernel-Error/ts-identities-security-level/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
